@@ -1,0 +1,26 @@
+{
+  "name": "alligata",
+  "version": "0.0.1",
+  "description": "Helper collection for wani",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aklaswad/alligata.git"
+  },
+  "keywords": [
+    "webaudio"
+  ],
+  "author": "aklaswad",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/aklaswad/alligata/issues"
+  },
+  "homepage": "https://github.com/aklaswad/alligata",
+  "devDependencies": {
+    "gulp": "^3.8.11",
+    "gulp-gh-pages": "^0.5.0"
+  }
+}

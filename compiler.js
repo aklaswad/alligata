@@ -69,6 +69,8 @@
     branch = {};
     expression = expression.replace(/^\s+/, '');
     expression = expression.replace(/\s+$/, '');
+    expression = expression.replace(/\#[^\n]*\n/g, '\n');
+    expression = expression.replace(/\#.*$/, '');
     try {
       tree = Alligata.parser.parse(expression);
     } catch (_error) {
@@ -114,21 +116,6 @@
       _generate(tree.rval, {
         dest: lval
       });
-    } else if (tree.sigil === '$') {
-      name = tree.prop.join('.');
-      if (io[name]) {
-        if (ctx.dest) {
-          c("nodes['" + io[name] + "'].connect(nodes[" + ctx.dest + "]);");
-        }
-        return io[name];
-      }
-      me = ++tail;
-      p("nodes[" + me + "] = io['" + name + "'] = ctx.createGain();");
-      if (ctx.dest) {
-        c("nodes[" + me + "].connect(nodes[" + ctx.dest + "]);");
-      }
-      io[name] = me;
-      return me;
     } else if (tree.sigil === ':') {
       name = tree.prop.join('.');
       if (io[name]) {
@@ -144,7 +131,7 @@
       }
       io[name] = me;
       return me;
-    } else if (tree.sigil === '#') {
+    } else if (tree.sigil === '$') {
       name = tree.prop.join('.');
       if (ctx.lval) {
         branch[name];

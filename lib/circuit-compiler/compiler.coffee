@@ -46,6 +46,9 @@ compile = (expression) ->
   branch = {}
   expression = expression.replace /^\s+/,''
   expression = expression.replace /\s+$/,''
+  expression = expression.replace /\#[^\n]*\n/g, '\n'
+  expression = expression.replace /\#.*$/, ''
+
   try
     tree = Alligata.parser.parse(expression)
   catch e
@@ -77,16 +80,6 @@ _generate = (tree, ctx) ->
       return
     _generate tree.rval, {dest: lval}
     return
-  else if tree.sigil == '$'
-    name = tree.prop.join('.')
-    if io[name]
-      c "nodes['#{io[name]}'].connect(nodes[#{ctx.dest}]);" if ctx.dest
-      return io[name]
-    me = ++tail
-    p "nodes[#{me}] = io['#{name}'] = ctx.createGain();"
-    c "nodes[#{me}].connect(nodes[#{ctx.dest}]);" if ctx.dest
-    io[name] = me
-    return me
   else if tree.sigil == ':'
     name = tree.prop.join '.'
     if io[name]
@@ -97,7 +90,7 @@ _generate = (tree, ctx) ->
     c "nodes[#{me}].connect(nodes[#{ctx.dest}]);" if ctx.dest
     io[name] = me
     return me
-  else if tree.sigil == '#'
+  else if tree.sigil == '$'
     name = tree.prop.join '.'
     if ctx.lval
       branch[name];

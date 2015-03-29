@@ -50,6 +50,7 @@ $( function () {
   margin: 10px 0;
   box-sizing: border-box;
   display: inline-block;
+  font-family: "Courier New", monospace;
 }
 
 #code {
@@ -59,6 +60,7 @@ $( function () {
   margin: 10px 0;
   box-sizing: border-box;
   display: inline-block;
+  font-family: "Courier New", monospace;
 }
 
 #error {
@@ -161,13 +163,16 @@ outlet.gain = lfo * 0.5 * :depth + (1 - :depth )
           <dd>
           Node name, without constructor. this would be printed as is into generated Javascript code. this means, you need to construct the node with named variable before generated code.
 <pre>
-var myOsc = new ctx.createOscillator();
+var myOsc = ctx.createOscillator();
 
 // copy of auto generated code
 </pre>
           </dd>
           <dt>Prefixed by <code>:</code> like <code>:name</code></dt>
           <dd>look up for existing named node</dd>
+          <dt>Prefixed by <code>$</code> like <code>$name</code><dt>
+          <dd>If used in LeftValue of substitution, it saves the right value. otherwise, it construct the saved value. <span class="bg-warning">Note that this function is not optimized, so using this could be a reason to create more audioNodes unnecessarilly.</span>
+          </dd>
         </ul>
         <h4>String</h4>
         quoted string is string ;) Now it's usable only at passing name parameters to functions.
@@ -187,6 +192,8 @@ audioParam("depth", 0.4);
 output = lfo.gain * :depth;
 </pre>
           </dd>
+          <dt>Comment</dt>
+          <dd>From hashmark <code>#</code> to the end on line will be ignored.</dd>
         </dl>
       </div>
       <div class="col-lg-4 col-md-4 col-sm-4">

@@ -148,7 +148,7 @@ outlet.gain = lfo * 0.5 * :depth + (1 - :depth );</textarea>
           <h4>Note</h4>
           Currently, WebAudio API doesn't have AudioParam node constructor, so some of this compiler's function are depends on wani's audioParam emulator (sorry not yet documented. please see code.)</p>
         <p><h4>Is it really works?</h4>
-          You can see how the code (at page was loaded) above works when use <code>SimpleTremoro</code> at <a href="http://aklaswad.github.io/wani">wani</a>. and whole source code is <a href="https://github.com/aklaswad/wani/blob/master/sample/SimpleTremolo.js">here</a>.</p>
+          You can see how the code in above box (at page was loaded) is working when use <code>SimpleTremoro</code> at <a href="http://aklaswad.github.io/wani">wani's demo page</a>. Also can see it's source code <a href="https://github.com/aklaswad/wani/blob/master/sample/SimpleTremolo.js">here</a>.</p>
         <p><h4>Is it faster than scriptNode?</h4>
           I believe so, but not yet benchmarked :P Now looking for good way to calculate and compare the circuit's speed.</p>
       </div>
@@ -187,16 +187,18 @@ var myOsc = ctx.createOscillator();
           <dt>audioParam(name,defaultValue)</dt>
           <dd>
 <pre>
-// create New audioParam named depth.
+# create New audioParam named depth.
 audioParam("depth", 0.4);
 
-// and then, You can reference it by name with ':' prefix.
+# and then, You can reference it by name with ':' prefix.
 output = lfo.gain * :depth;
 </pre>
           </dd>
-          <dt>Comment</dt>
-          <dd>From hashmark <code>#</code> to the end on line will be ignored.</dd>
         </dl>
+      </div>
+      <div>
+        <h4>Comment</h4>
+          From hashmark <code>#</code> to the end on line will be ignored.
       </div>
       <div class="col-lg-4 col-md-4 col-sm-4">
         <h2>CompileOptions</h2>

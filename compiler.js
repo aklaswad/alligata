@@ -37,7 +37,6 @@
   funcs = {
     audioParam: function(name, def) {
       var me;
-      console.log('ap', this, arguments);
       if ((name != null ? name.string : void 0) == null) {
         throw "audioParam requires name";
       }
@@ -58,7 +57,7 @@
 
   prefix = "var io = (function (ctx) {\n  var io = {};\n  var nodes = [];\n";
 
-  suffix = "\n\n// done\nreturn io;\n})(ctx);";
+  suffix = "\n\n// Done, then returns collected I/O.\n  return io;\n})(ctx);";
 
   compile = function(expression) {
     var e, tree;
@@ -76,7 +75,6 @@
       e = _error;
       throw "Parse error: " + e;
     }
-    console.log(tree);
     try {
       _generate(tree, {});
     } catch (_error) {
@@ -125,7 +123,7 @@
         return io[name];
       }
       me = ++tail;
-      p("nodes[" + me + "] = io['" + name + "'] = ctx.createGain(); // make io");
+      p("nodes[" + me + "] = io['" + name + "'] = ctx.createGain();");
       if (ctx.dest) {
         c("nodes[" + me + "].connect(nodes[" + ctx.dest + "]);");
       }
@@ -140,7 +138,7 @@
         return io[name];
       }
       me = ++tail;
-      p("nodes[" + me + "] = io['" + name + "'] = Wani.createAudioParam(ctx); // make io");
+      p("nodes[" + me + "] = io['" + name + "'] = Wani.createAudioParam(ctx);");
       if (ctx.dest) {
         c("nodes[" + me + "].connect(nodes[" + ctx.dest + "]);");
       }
@@ -171,7 +169,7 @@
       }
       me = ++tail;
       ns[name] = me;
-      p("nodes[" + me + "] = " + name + "; // Existing node");
+      p("nodes[" + me + "] = " + name + ";");
       if (ctx.dest) {
         c("nodes[" + me + "].connect(nodes[" + ctx.dest + "]);");
       }
@@ -179,7 +177,7 @@
       return me;
     } else if (tree.number) {
       me = ++tail;
-      p("nodes[" + me + "] = " + (offset(tree.number)) + "; // number");
+      p("nodes[" + me + "] = " + (offset(tree.number)) + ";");
       c("nodes[" + me + "].connect(nodes[" + ctx.dest + "]);");
       return me;
     } else if (tree.additive) {
@@ -216,7 +214,7 @@
         ctx.subdest = ++tail;
         p("nodes[" + ctx.subdest + "] = ctx.createGain();");
         p("nodes[" + ctx.subdest + "].gain.value = -1");
-        c("nodes[" + ctx.subdest + "].connect(nodes[" + ctx.dest + "]); // negativer for minus()");
+        c("nodes[" + ctx.subdest + "].connect(nodes[" + ctx.dest + "]);");
       }
       if (ctx.sub) {
         _generate(tree.l, {
@@ -244,7 +242,7 @@
     } else if (tree.op === '*') {
       me = ++tail;
       multiplier = ++tail;
-      p("nodes[" + me + "] = ctx.createGain();  // multi(" + me + ")");
+      p("nodes[" + me + "] = ctx.createGain();");
       p("nodes[" + multiplier + "] = nodes[" + me + "].gain;");
       p("nodes[" + multiplier + "].value = 0.0;");
       _generate(tree.l, {
@@ -254,7 +252,7 @@
         dest: multiplier
       });
       if (ctx.dest) {
-        c("nodes[" + me + "].connect(nodes[" + ctx.dest + "]); // to output from multi(" + me + ")");
+        c("nodes[" + me + "].connect(nodes[" + ctx.dest + "]);");
       }
       return me;
     } else if (tree.op === '/') {

@@ -121,13 +121,11 @@ footer a:hover {
   <section class="container-fluid">
     <div class="row">
       <div class="col-md-6 col-lg-6 col-sm-6">
-        <textarea id="expression" />
-audioParam('speed',5);
+        <textarea id="expression" />audioParam('speed',5);
 audioParam('depth',0.6);
 lfo.frequency = :speed;
 outlet = inlet;
-outlet.gain = lfo * 0.5 * :depth + (1 - :depth )
-        </textarea>
+outlet.gain = lfo * 0.5 * :depth + (1 - :depth );</textarea>
       </div>
       <div class="col-md-6 col-lg-6 col-sm-6">
         <textarea id="code"></textarea>
@@ -140,9 +138,13 @@ outlet.gain = lfo * 0.5 * :depth + (1 - :depth )
       <div class="col-lg-4 col-md-4 col-sm-4">
         <p>
           <h1 class="page-title">DSP Circuit Compiler</h1>
-          This is DSP circuit compiler for WebAudio / <a href="http://aklaswad.github.io/wani/">wani</a>.
+          DSP circuit compiler for WebAudio/<a href="http://aklaswad.github.io/wani/">wani</a>. is a program which can read an arithmetic expressions and prints a JavaScript code which creates a WebAudio DSP circuit which works as same as expressions do.
+        </p>
+        <p>
           <h4>How to use?</h4>
-          just copy and paste the generated code into your code ;)
+          Just copy and paste the generated code into your code ;)
+        </p>
+        <p>
           <h4>Note</h4>
           Currently, WebAudio API doesn't have AudioParam node constructor, so some of this compiler's function are depends on wani's audioParam emulator (sorry not yet documented. please see code.)</p>
         <p><h4>Is it really works?</h4>

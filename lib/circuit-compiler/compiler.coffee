@@ -13,7 +13,6 @@ offset = (val) ->
 
 funcs =
   audioParam: (name, def)->
-    console.log 'ap',this, arguments
     throw "audioParam requires name" unless name?.string?
     throw "audioParam requires default value" unless def?.number?
     name = name.string
@@ -34,7 +33,7 @@ var io = (function (ctx) {
 suffix = """
 
 
-  // done
+// Done, then returns collected I/O.
   return io;
 })(ctx);
 """
@@ -51,7 +50,6 @@ compile = (expression) ->
     tree = Alligata.parser.parse(expression)
   catch e
     throw "Parse error: #{e}"
-  console.log tree
   # $('#tree').val( JSON.stringify tree )
   # p "nodes[0] = io['output'] = ctx.createGain()"
   try
@@ -85,7 +83,7 @@ _generate = (tree, ctx) ->
       c "nodes['#{io[name]}'].connect(nodes[#{ctx.dest}]);" if ctx.dest
       return io[name]
     me = ++tail
-    p "nodes[#{me}] = io['#{name}'] = ctx.createGain(); // make io"
+    p "nodes[#{me}] = io['#{name}'] = ctx.createGain();"
     c "nodes[#{me}].connect(nodes[#{ctx.dest}]);" if ctx.dest
     io[name] = me
     return me
@@ -95,7 +93,7 @@ _generate = (tree, ctx) ->
       c "nodes[#{io[name]}].connect(nodes[#{ctx.dest}]);" if ctx.dest
       return io[name]
     me = ++tail
-    p "nodes[#{me}] = io['#{name}'] = Wani.createAudioParam(ctx); // make io"
+    p "nodes[#{me}] = io['#{name}'] = Wani.createAudioParam(ctx);"
     c "nodes[#{me}].connect(nodes[#{ctx.dest}]);" if ctx.dest
     io[name] = me
     return me
@@ -115,13 +113,13 @@ _generate = (tree, ctx) ->
       return ns[name]
     me = ++tail
     ns[name] = me
-    p "nodes[#{me}] = #{name}; // Existing node"
+    p "nodes[#{me}] = #{name};"
     c "nodes[#{me}].connect(nodes[#{ctx.dest}]);" if ctx.dest
     io[name] = me
     return me
   else if tree.number
     me = ++tail
-    p "nodes[#{me}] = #{offset(tree.number)}; // number"
+    p "nodes[#{me}] = #{offset(tree.number)};"
     c "nodes[#{me}].connect(nodes[#{ctx.dest}]);"
     return me
   else if tree.additive
@@ -140,7 +138,7 @@ _generate = (tree, ctx) ->
       ctx.subdest = ++tail
       p "nodes[#{ctx.subdest}] = ctx.createGain();"
       p "nodes[#{ctx.subdest}].gain.value = -1"
-      c "nodes[#{ctx.subdest}].connect(nodes[#{ctx.dest}]); // negativer for minus()"
+      c "nodes[#{ctx.subdest}].connect(nodes[#{ctx.dest}]);"
     if ctx.sub
       _generate tree.l, {sub:1, dest:ctx.dest, subdest:ctx.subdest}
       _generate tree.r, {sub:1, dest:ctx.dest, subdest:ctx.subdest}
@@ -151,13 +149,13 @@ _generate = (tree, ctx) ->
   else if tree.op == '*'
     me = ++tail
     multiplier = ++tail
-    p "nodes[#{me}] = ctx.createGain();  // multi(#{me})"
+    p "nodes[#{me}] = ctx.createGain();"
     p "nodes[#{multiplier}] = nodes[#{me}].gain;"
     p "nodes[#{multiplier}].value = 0.0;"
     _generate tree.l, {dest: me}
     _generate tree.r, {dest: multiplier}
     if ctx.dest
-      c "nodes[#{me}].connect(nodes[#{ctx.dest}]); // to output from multi(#{me})"
+      c "nodes[#{me}].connect(nodes[#{ctx.dest}]);"
     return me
   else if tree.op == '/'
     throw "division is not supported :P"

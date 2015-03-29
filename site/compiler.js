@@ -173,6 +173,10 @@
         subdest: ctx.subdest
       });
     } else if (tree.op === '+') {
+      if (!ctx.dest) {
+        ctx.dest = me = ++tail;
+        p("nodes[" + me + "] = io['__output'] = ctx.createGain();");
+      }
       if (ctx.sub) {
         _generate(tree.l, {
           add: 1,
@@ -197,6 +201,10 @@
         });
       }
     } else if (tree.op === '-') {
+      if (!ctx.dest) {
+        ctx.dest = me = ++tail;
+        p("nodes[" + me + "] = io['__output'] = ctx.createGain();");
+      }
       if (ctx.subdest == null) {
         ctx.subdest = ++tail;
         p("nodes[" + ctx.subdest + "] = ctx.createGain();");

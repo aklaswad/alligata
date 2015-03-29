@@ -119,6 +119,9 @@ _generate = (tree, ctx) ->
     _generate tree.additive, {dest: ctx.dest, subdest: ctx.subdest}
     return
   else if tree.op == '+'
+    unless ctx.dest
+      ctx.dest = me = ++tail
+      p "nodes[#{me}] = io['__output'] = ctx.createGain();"
     if ctx.sub
       _generate tree.l, {add:1, dest:ctx.dest, subdest:ctx.subdest}
       _generate tree.r, {add:1, dest:ctx.subdest, subdest:ctx.dest}
@@ -127,6 +130,9 @@ _generate = (tree, ctx) ->
       _generate tree.r, {add:1, dest:ctx.dest, subdest:ctx.subdest}
     return
   else if tree.op == '-'
+    unless ctx.dest
+      ctx.dest = me = ++tail
+      p "nodes[#{me}] = io['__output'] = ctx.createGain();"
     unless ctx.subdest?
       ctx.subdest = ++tail
       p "nodes[#{ctx.subdest}] = ctx.createGain();"

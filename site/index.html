@@ -1,1 +1,108 @@
-alligata
+<script>window.Alligata = {};</script>
+<script src="parser.js"></script>
+<script src="compiler.js"></script>
+<script src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
+<script src="coffee-script.js"></script>
+<script>
+$( function () {
+  var run = function () {
+    var exp = $('#expression').val()
+      , code;
+    exp = exp.replace(/^\s+/,'');
+    exp = exp.replace(/\s+$/,'');
+    try {
+      code = Alligata.compile(exp);
+    }
+    catch (e) {
+      $('#code').val('');
+      $('#error').text(e);
+      return;
+    }
+    $('#code').val(code);
+    $('#error').text('');
+  };
+
+  var guard = 0;
+  $('#expression').on( 'keyup', function () {
+    if ( guard++ ) return;
+    setTimeout( function () {
+      if ( guard > 1 ) {
+        run();
+      }
+      guard = 0;
+    },1000);
+    run();
+  });
+
+  run();
+});
+</script>
+<link rel="stylesheet" type="text/css" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" />
+
+<style>
+
+footer.credit {
+  width: 100%;
+  margin: 30px 0 0 0;
+  padding: 10px;
+  background-color: #888980;
+  color: #dadacf;
+  border-radius: 5px 5px 0 0;
+  border-top: 1px solid #def;
+  border-right: 1px solid #def;
+}
+
+footer p {
+  text-align: right;
+}
+
+footer a {
+  color: #f84;
+  font-style: bold;
+}
+
+footer a:hover {
+  color: #fff;
+  font-style: bold;
+  text-decoration: underline;
+}
+
+h1.page-title {
+  margin-top: 93px;
+  padding-bottom: 77px;
+  color: #789;
+  border-bottom: 1px solid #ddd;
+}
+
+h1.page-title small {
+  font-size: 0.5em;
+  color: #aaa;
+  margin-left: 30px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+</style>
+
+<body>
+  <section class="container doc">
+    <div class="row">
+      <h1 class="page-title">alligata<small>Support tools for WebAudio API and <a href="http://aklaswad.github.com/wani">wani</a></small></h1>
+      <div class="col-lg-4 col-md-4 col-sm-4">
+        <p>Collection of Support Tools/Libraries for WebAudio/<a href="http://aklaswad.github.io/wani/">wani</a>. It includes audioParam emulator (sorry not yet documented. please see code.), so you can create your AudioNode without any scriptProcessor node ;)</p>
+      </div>
+
+      <div class="col-lg-4 col-md-4 col-sm-4">
+        <h3><a href="dsp-circuit-compiler.html">DSP Circuit Compiler</a></h3>
+        Compiles Arithmetic expressions to WebAudio Node Circuit.
+      </div>
+    </div>
+    <footer class="credit">
+      <p>parser is powered by <a href="http://pegjs.org/">peg.js</a>. thanks!</p>
+      <p>written by aklaswad <a href="https://github.com/aklaswad">github</a> <a href="https://twitter.com/aklaswad">twitter</a></p>
+    </footer>
+
+  </section>
+<a href="https://github.com/aklaswad/alligata" style="z-index:9999"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/652c5b9acfaddf3a9c326fa6bde407b87f7be0f4/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6f72616e67655f6666373630302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_orange_ff7600.png"></a>
+</body>
+

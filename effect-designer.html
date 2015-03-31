@@ -1,45 +1,66 @@
 <script>window.Alligata = {};</script>
-<script src="parser.js"></script>
-<script src="compiler.js"></script>
 <script src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
-<script src="coffee-script.js"></script>
+<script src="../../wani/lib/Wani.js"></script>
+<script src="../../wanigui/lib/wanigui.js"></script>
+<script src="../lib/jobManager.js"></script>
 <script>
-$( function () {
-  var run = function () {
-    var exp = $('#expression').val()
-      , code;
-    exp = exp.replace(/^\s+/,'');
-    exp = exp.replace(/\s+$/,'');
-    try {
-      code = Alligata.compile(exp);
-    }
-    catch (e) {
-      $('#code').val('');
-      $('#error').text(e);
-      return;
-    }
-    $('#code').val(code);
-    $('#error').text('');
-  };
+$(function () {
 
-  var guard = 0;
-  $('#expression').on( 'keyup', function () {
-    if ( guard++ ) return;
-    setTimeout( function () {
-      if ( guard > 1 ) {
-        run();
-      }
-      guard = 0;
-    },1000);
-    run();
+  var ctx = Wani.getAudioContext();
+  var osc = ctx.createOscillator();
+  var osc2 = ctx.createOscillator();
+  osc.frequency.value = 10.16;
+  osc.type = 'square';
+  osc2.frequency.value = 303.2;
+  osc2.type = 'square';
+  var osc3 = ctx.createOscillator();
+  osc3.frequency.value = 303.19;
+  var gain2 = ctx.createGain();
+  gain2.gain.value = 33;
+  var width = ctx.createGain();
+  width.gain.value = 0;
+  osc3.type = 'square';
+
+  var f = ctx.createBiquadFilter();
+  osc3.connect(gain2); gain2.connect(width.gain);
+  osc2.connect(width); width.connect(osc.frequency);
+  var renderer = Wanigui.createWaveFormRenderer(ctx,'canvas',{
+    range: [-1,1],
+//    zoomout: 2,
+    lineColor: 'rgba(192,202,112,0.8)',
+    backgroundColor: '#888'
   });
 
-  run();
+  osc.connect(f);
+  f.connect(renderer);
+  f.Q.value = 9.5;
+  osc4 = ctx.createOscillator();
+  osc4.frequency.value = 0.02;
+  osc4.type = 'triangle';
+  var g = ctx.createGain();
+  g.gain.value = 7500;
+  osc4.connect(g);
+  g.connect(f.frequency);
+osc4.start();
+  f.frequency.value = 8000;
+  f.connect(ctx.destination);
+osc3.connect(f.frequency);
+  osc.start();
+  osc2.start();
+  osc3.start();
+  function render() {
+    var $cvs = $('#canvas');
+    Wanigui.renderArrayToCanvas(result,$cvs.get(0),{range: [0,2]});
+  }
+
 });
+
+
 </script>
 <link rel="stylesheet" type="text/css" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" />
 
 <style>
+#canvas { border: 1px solid #888 }
 
 #expression {
   height: 300px;
@@ -128,7 +149,7 @@ outlet = inlet;
 outlet.gain = lfo * 0.5 * :depth + (1 - :depth );</textarea>
       </div>
       <div class="col-md-6 col-lg-6 col-sm-6">
-        <textarea id="code"></textarea>
+        <canvas id="canvas" width="512" height="400"></canvas>
       </div>
     </div>
     <div id="error"></div>
@@ -197,8 +218,6 @@ output = lfo.gain * :depth;
         </dl>
         <h4>Comment</h4>
           From hashmark <code>#</code> to the end on line will be ignored.
-        <h4>JavaScript</h4>
-          From exclamation mark <code>!</code> to the end of line will be printed as raw JavaScript.
       </div>
       <div class="col-lg-4 col-md-4 col-sm-4">
         <h2>CompileOptions</h2>

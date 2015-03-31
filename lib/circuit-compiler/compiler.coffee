@@ -68,7 +68,9 @@ _generate = (tree, ctx) ->
     name = tree.func
     throw "Undefined function [#{name}]" unless funcs[name]
     return funcs[name].apply(ctx,tree.args.args)
-  if tree.s
+  else if tree.js?
+    p tree.js
+  else if tree.s
     _generate tree.s, {}
     _generate tree.ss, {}
     return

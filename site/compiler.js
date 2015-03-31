@@ -98,8 +98,9 @@
         throw "Undefined function [" + name + "]";
       }
       return funcs[name].apply(ctx, tree.args.args);
-    }
-    if (tree.s) {
+    } else if (tree.js != null) {
+      return p(tree.js);
+    } else if (tree.s) {
       _generate(tree.s, {});
       _generate(tree.ss, {});
     } else if (tree.lval) {

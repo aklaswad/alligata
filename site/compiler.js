@@ -265,6 +265,8 @@
       return me;
     } else if (tree.op === '/') {
       throw "division is not supported :P";
+    } else if (tree["void"]) {
+
     } else {
       throw "unknown operator";
     }

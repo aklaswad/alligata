@@ -166,6 +166,8 @@ _generate = (tree, ctx) ->
     return me
   else if tree.op == '/'
     throw "division is not supported :P"
+  else if tree.void
+    return
   else
     throw "unknown operator"
 

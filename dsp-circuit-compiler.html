@@ -2,6 +2,9 @@
 <script src="parser.js"></script>
 <script src="compiler.js"></script>
 <script src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
+<script src="http://aklaswad.github.io/wani/wani.js"></script>
+<script src="http://aklaswad.github.io/wani/TriOscillator.js"></script>
+<script src="http://aklaswad.github.io/wanigui/wanigui.all.min.js"></script>
 <script src="coffee-script.js"></script>
 <script>
 $( function () {
@@ -14,12 +17,11 @@ $( function () {
       code = Alligata.compile(exp);
     }
     catch (e) {
-      $('#code').val('');
-      $('#error').text(e);
+      showError('Compile error: ' + e);
       return;
     }
     $('#code').val(code);
-    $('#error').text('');
+    rebuildCircuit(code);
   };
 
   var guard = 0;
@@ -30,9 +32,77 @@ $( function () {
         run();
       }
       guard = 0;
-    },1000);
+    },300);
     run();
   });
+
+  $('.js-toggle-play-code').on('click', function () {
+    var old = $(this).text();
+    $(this).text('See generated code' !== old ?
+                 'See generated code' :
+                 'Play now');
+    $('#col-play-left').toggle();
+    $('#col-play-right').toggle();
+    $('#col-result').toggle();
+    return false;
+  });
+
+  var synth = Wani.createModule('TriOscillator');
+  var gui = new Wanigui(synth);
+  $('#col-play-left').append(gui.build());
+
+  function showSuccess (msg) {
+    $('#expression').removeClass('compile-error');
+    $('#expression').addClass('compile-success');
+    $('#error').text(msg).removeClass('error').addClass('success');
+  }
+
+  function showError (msg) {
+      $('#expression').addClass('compile-error');
+      $('#expression').removeClass('compile-success');
+      $('#error').text(msg).removeClass('success').addClass('error');
+  }
+
+  var compiled;
+  function rebuildCircuit(code,module) {
+    synth.disconnect();
+    var ctx = Wani.getAudioContext();
+    var input = ctx.createGain();
+    var output = ctx.createGain();
+    if ( compiled ) {
+      compiled.disconnect();
+    }
+    compiled = null;
+    var context = {ctx:ctx, input:input, output: output, module: {} };
+    try {
+      with(context) { window.__io = eval(code); }
+    }
+    catch(e) {
+      showError( 'Eval error: ' + e);
+      return;
+    }
+    var create = function (ctx) {
+      this.input = input;
+      this.output = output;
+      for (name in context.module) {
+        this[name] = context.module[name];
+      }
+    };
+    create.prototype = Object.create(Wani.Module.prototype);
+    var profile = { name: "compiled", create: create, audioParams: {} };
+    for (name in __io) {
+      profile.audioParams[name] = __io[name];
+    }
+    console.log(profile);
+    Wani.registerModule(profile);
+    var module = Wani.createModule('compiled');
+    var gui = new Wanigui(module);
+    $('#compiled-module').empty().append( gui.build() );
+    synth.connect(module);
+    module.connect(ctx.destination);
+    compiled = module;
+    showSuccess('Expression is playable now!');
+  }
 
   run();
 });
@@ -53,6 +123,20 @@ $( function () {
   font-family: "Courier New", monospace;
 }
 
+#expression.compile-error {
+  border: 2px solid #a66;
+  box-shadow: 0 0 10px #a66;
+}
+
+#expression:focus {
+  outline: none !important;
+}
+
+#expression.compile-success {
+  border: 2px solid #6a6;
+  box-shadow: 0 0 10px #6a6;
+}
+
 #code {
   width: 95%;
   height: 300px;
@@ -61,10 +145,19 @@ $( function () {
   box-sizing: border-box;
   display: inline-block;
   font-family: "Courier New", monospace;
+  autocomplete: off;
 }
 
 #error {
   height: 16px;
+}
+
+#error.error {
+  color: #a66;
+}
+
+#error.success {
+  color: #6a6;
 }
 
 footer.credit {
@@ -120,18 +213,32 @@ footer a:hover {
   </nav>
   <section class="container-fluid">
     <div class="row">
-      <div class="col-md-6 col-lg-6 col-sm-6">
-        <textarea id="expression" />audioParam('speed',5);
-audioParam('depth',0.6);
-lfo.frequency = :speed;
-outlet = inlet;
-outlet.gain = lfo * 0.5 * :depth + (1 - :depth );</textarea>
-      </div>
-      <div class="col-md-6 col-lg-6 col-sm-6">
-        <textarea id="code"></textarea>
+      <div class="col-md-3 col-lg-3 col-sm-3">
+        <a class="js-toggle-play-code" href="#">See generated code</a>
       </div>
     </div>
-    <div id="error"></div>
+    <div class="row">
+      <div id="col-play-left" class="col-md-3 col-lg-3 col-sm-3">
+      </div>
+      <div id="col-exp" class="col-md-6 col-lg-6 col-sm-6">
+        <textarea id="expression" spellcheck="false" />audioParam('speed', 5, 0, 20);
+audioParam('depth', 0.6, 0, 1);
+!var lfo = ctx.createOscillator();
+!lfo.frequency.value = 0.0;
+!lfo.start();
+lfo.frequency = :speed;
+output = input;
+output.gain = lfo * 0.5 * :depth + (1 - :depth );</textarea>
+<div><span id="error"></span></div>
+      </div>
+      <div id="col-result" class="col-md-6 col-lg-6 col-sm-6" style="display: none">
+        <textarea id="code" spellcheck="false" ></textarea>
+      </div>
+      <div id="col-play-right" class="col-md-3 col-lg-3 col-sm-3">
+        <div id="compiled-module"></div>
+      </div>
+    </div>
+
   </section>
   <section class="container doc">
     <div class="row">

@@ -1,6 +1,7 @@
 lines = []
 connections = []
 io = {}
+ioprof = {}
 ns = {}
 branch = {}
 tail = 1
@@ -12,31 +13,36 @@ offset = (val) ->
   "Wani.createDCOffset(ctx,#{val})"
 
 funcs =
-  audioParam: (name, def)->
+  audioParam: (name, def, min, max)->
     throw "audioParam requires name" unless name?.string?
     throw "audioParam requires default value" unless def?.number?
-    name = name.string
-    def = def.number
+    pname = name.string
+    pdef = def.number
     me = ++tail;
-    io[name] = me
-    p "nodes[#{me}] = io['#{name}'] = Wani.createAudioParam(ctx,#{def});"
+    io[pname] = me
+    nMin = if min.minus then min.number * -1 else min.number
+    nMax = if max.minus then max.number * -1 else max.number
+    ioprof[pname] =
+      range: [ nMin, nMax ]
+    console.log ">>",ioprof
+    p "nodes[#{me}] = module['#{pname}'] = Wani.createAudioParam(ctx,#{pdef});"
     c "nodes[#{me}].connect(nodes[#{this.dest}]);" if this.dest
     return me
 
-prefix = """
-var io = (function (ctx) {
-  var io = {};
+prefix = ()-> """
+(function (ctx, module) {
   var nodes = [];
 
 """
 
-suffix = """
+suffix = ()-> """
 
 
 // Done, then returns collected I/O.
-  return io;
-})(ctx);
+  return #{JSON.stringify(ioprof)};
+})(ctx,module);
 """
+
 compile = (expression) ->
   tail = 0
   io = {}
@@ -59,7 +65,7 @@ compile = (expression) ->
     _generate tree, {}
   catch e
     throw "Compile error: #{e}"
-  prefix + "  " + lines.join("\n  ") + "\n\n  " + connections.join("\n  ") + suffix
+  prefix() + "  " + lines.join("\n  ") + "\n\n  " + connections.join("\n  ") + suffix()
 
 _resolve_prop = () -> 1
 
@@ -88,7 +94,7 @@ _generate = (tree, ctx) ->
       c "nodes[#{io[name]}].connect(nodes[#{ctx.dest}]);" if ctx.dest
       return io[name]
     me = ++tail
-    p "nodes[#{me}] = io['#{name}'] = Wani.createAudioParam(ctx);"
+    p "nodes[#{me}] = module['#{name}'] = Wani.createAudioParam(ctx);"
     c "nodes[#{me}].connect(nodes[#{ctx.dest}]);" if ctx.dest
     io[name] = me
     return me

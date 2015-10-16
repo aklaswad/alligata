@@ -10,7 +10,7 @@ p = (s)-> lines.push s
 c = (s)-> connections.push s
 d = (s)-> lines.push s if debug
 offset = (val) ->
-  "Wani.createDCOffset(ctx,#{val})"
+  "Wani.createDCOffset(#{val})"
 
 funcs =
   audioParam: (name, def, min, max)->
@@ -144,7 +144,7 @@ _generate = (tree, ctx) ->
     unless ctx.subdest?
       ctx.subdest = ++tail
       p "nodes[#{ctx.subdest}] = ctx.createGain();"
-      p "nodes[#{ctx.subdest}].gain.value = -1"
+      p "nodes[#{ctx.subdest}].gain.value = -1.0;"
       c "nodes[#{ctx.subdest}].connect(nodes[#{ctx.dest}]);"
     if ctx.sub
       _generate tree.l, {sub:1, dest:ctx.dest, subdest:ctx.subdest}

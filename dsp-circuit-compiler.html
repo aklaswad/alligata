@@ -79,6 +79,7 @@ $( function () {
     }
     catch(e) {
       showError( 'Eval error: ' + e);
+      console.log(code);
       return;
     }
     var create = function (ctx) {

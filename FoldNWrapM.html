@@ -1,0 +1,315 @@
+<html lang="en-us">
+<head>
+<script src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
+<script src="http://aklaswad.github.io/wani/wani.js"></script>
+<script>window.Alligata = {};</script>
+<script src="../lib/StorageManager.js"></script>
+<script src="TriOscillator.js"></script>
+<script src="Kick.js"></script>
+<script src="Snare.js"></script>
+<script src="Tom.js"></script>
+<script src="Seq.js"></script>
+<style>
+html, body, div, ul, li {
+  padding: 0;
+  margin: 0;
+  font-family: "Courier New";
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+li {
+  list-style: none;
+}
+
+a { text-decoration: none; }
+
+body {
+  background-color: #000;
+  position: relative;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#field-wrapper {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translateX(-50%) translateY(-50%);
+  z-index: 10;
+}
+
+#menu {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 100;
+  transform: translateX(-50%) translateY(-50%);
+  text-align: center;
+  vertical-align: middle;
+}
+
+#menu a {
+  color: #777;
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: 0.5em;
+}
+
+#menu a:hover {
+  color: #aaa;
+}
+
+#field {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+}
+
+.inner-text, .outer-text {
+  position: absolute;
+}
+
+#field-header, #field-footer {
+  display: inline-block;
+  font-size: 15px;
+  font-weight: bold;
+  font-family: "Courier New";
+  width: 0;
+  height: 0;
+  top: 0;
+  left: 0;
+  z-index: 3;
+}
+
+#field-header a, #field-footer a {
+  color: #444;
+}
+
+#field-header a:hover, #field-footer a:hover {
+  color: #777;
+}
+
+
+.modal-wrapper {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 300;
+  background-color: rgba(128,128,128,0.4);
+  display: none;
+  cursor: w-resize;
+}
+
+.modal-position-fix {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-50%);
+  z-index: 350;
+}
+
+.modal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-50%);
+  border-radius: 50%;
+  background-color: rgba(128,128,128,0.7);
+  z-index: 400;
+  cursor: auto;
+  vertical-align: middle;
+  font-weight: bold;
+  text-align: center;
+}
+
+.modal a {
+  letter-spacing: 0.5em;
+  color: #444;
+}
+
+.modal a:hover {
+  letter-spacing: 0.5em;
+  color: #000;
+}
+
+.step {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: rgba(0,0,0,1);
+  border-radius: 6px;
+  transform: translateX(-50%) translateY(-50%);
+}
+
+.step:hover {
+  cursor: pointer;
+  width: 10px;
+  height: 10px;
+  border: 4px solid #dfd !important;
+  border-radius: 9px !important;
+}
+
+.step.step-4n {
+  width: 5px;
+  height: 5px;
+  border-radius: 10px;
+}
+
+.step.step-16n {
+  width: 7px;
+  height: 7px;
+  border-radius: 9px;
+}
+
+.step.playing {
+  border: 1px solid #fff;
+
+
+}
+
+.step.have-note.playing {
+  border-width: 12px;
+  border-radius: 32px;
+  box-shadow: 0 0 30px #fff;
+}
+
+.step.played1 {
+  border: 1px solid #fff;
+}
+
+.step.have-note.played1 {
+  border-width: 10px;
+  border-radius: 26px;
+  box-shadow: 0 0 26px #fff;
+
+}
+
+.step.played2 {
+  border: 1px solid #888;
+}
+
+.step.have-note.played2 {
+  border-width: 6px;
+  box-shadow: 0 0 50px #fff;
+  border-radius: 16px;
+}
+
+.step.have-note.editing {
+  border-width: 10px !important;
+  border-radius: 0 !important;
+}
+
+.step.have-note {
+  width: 8px;
+  height: 8px;
+  border-width: 1px;
+}
+
+.step.tr-0  { background-color: #abc; }
+.step.tr-1  { background-color: #978; }
+.step.tr-2  { background-color: #acb; }
+.step.tr-3  { background-color: #987; }
+.step.tr-4  { background-color: #bac; }
+.step.tr-5  { background-color: #897; }
+.step.tr-6  { background-color: #bca; }
+.step.tr-7  { background-color: #879; }
+.step.tr-8  { background-color: #cba; }
+.step.tr-9  { background-color: #798; }
+.step.tr-10 { background-color: #cab; }
+.step.tr-11 { background-color: #789; }
+
+
+.step.have-note.tr-0  { border-color: #abc; background-color: #444}
+.step.have-note.tr-1  { border-color: #978; background-color: #444}
+.step.have-note.tr-2  { border-color: #acb; background-color: #444}
+.step.have-note.tr-3  { border-color: #987; background-color: #444}
+.step.have-note.tr-4  { border-color: #bac; background-color: #444}
+.step.have-note.tr-5  { border-color: #897; background-color: #444}
+.step.have-note.tr-6  { border-color: #bca; background-color: #444}
+.step.have-note.tr-7  { border-color: #879; background-color: #444}
+.step.have-note.tr-8  { border-color: #cba; background-color: #444}
+.step.have-note.tr-9  { border-color: #798; background-color: #444}
+.step.have-note.tr-10 { border-color: #cab; background-color: #444}
+.step.have-note.tr-11 { border-color: #789; background-color: #444}
+
+.short-input {
+  width: 60px;
+  text-align: right;
+  outline: none;
+}
+
+</style>
+
+</head>
+<body>
+<div id="field-wrapper">
+  <div id="menu">
+    <ul>
+      <li><a href="#" id="js-play">play</a></li>
+      <li><a href="#" id="js-menu">menu</a></li>
+      <li><a href="#" id="js-show">step</a></li>
+    </ul>
+  </div>
+  <section id="field">
+    <header id="field-header"></header>
+    <footer id="field-footer"></footer>
+  </section>
+</div>
+
+<script type="text/template" id="root">
+  <ul>
+    <li><a href="#" class="js-manage">load</a></li>
+    <li><a href="#" class="js-save">save</a></li>
+    <li><a href="#" class="js-copy">copy</a></li>
+    <li><a href="#" class="js-song">edit</a></li>
+  </ul>
+</script>
+
+<script type="text/template" id="manage">
+  <a href="#" class="js-new-song">create new</a>
+  <ul class="js-songs"></ul>
+</script>
+
+<script type="text/template" id="song">
+
+  <h4><label>name: <input class="js-song-name" /></label></h4>
+  <div class="js-song-description">
+      <input data-type="bpm" /> BPM at start<br />
+      and go down to <input data-type="wrap" /> times<br />slower at the end of circle.<br />
+      <input data-type="steps" /> steps in one circle<br />
+      and play different chords<br />for <input data-type="raps" /> circles.
+  </div>
+  <div style="padding: 10px;" />
+    <button class="js-song-apply">apply</button>
+  </div>
+</script>
+
+<script type="text/template" id="note">
+  <dl>
+    <dt>velocity</dt>
+    <dd><input class="small-input" type="range" min="0" max="1" step="0.02"/></dd>
+    <dt>note number</dt>
+    <dd><input class="small-input" type="number" min="1" max="100" /></dd>
+  </dl>
+
+</script>
+<script src="FoldNWrapM.js"></script>
+
+</body>
+</html>

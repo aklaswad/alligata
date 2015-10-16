@@ -33,7 +33,7 @@
   };
 
   offset = function(val) {
-    return "Wani.createDCOffset(ctx," + val + ")";
+    return "Wani.createDCOffset(" + val + ")";
   };
 
   funcs = {
@@ -221,7 +221,7 @@
       if (ctx.subdest == null) {
         ctx.subdest = ++tail;
         p("nodes[" + ctx.subdest + "] = ctx.createGain();");
-        p("nodes[" + ctx.subdest + "].gain.value = -1");
+        p("nodes[" + ctx.subdest + "].gain.value = -1.0;");
         c("nodes[" + ctx.subdest + "].connect(nodes[" + ctx.dest + "]);");
       }
       if (ctx.sub) {

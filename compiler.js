@@ -79,6 +79,7 @@
     connections = [];
     ns = {};
     branch = {};
+    ioprof = {};
     expression = expression.replace(/^\s+/, '');
     expression = expression.replace(/\s+$/, '');
     expression = expression.replace(/\#[^\n]*\n/g, '\n');

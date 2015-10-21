@@ -82,6 +82,7 @@ $( function () {
       console.log(code);
       return;
     }
+    console.log(window.__io);
     var create = function (ctx) {
       this.input = input;
       this.output = output;
@@ -91,6 +92,7 @@ $( function () {
     };
     create.prototype = Object.create(Wani.Module.prototype);
     var profile = { name: "compiled", create: create, audioParams: {} };
+
     for (name in __io) {
       profile.audioParams[name] = __io[name];
     }

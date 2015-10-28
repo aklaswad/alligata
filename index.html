@@ -1,0 +1,109 @@
+<html>
+<head>
+<style>
+#drawer, #sim-drawer {
+  position: fixed;
+  top: 0;
+  border: 4px solid #f00;
+  background: rgba(0,0,0,0.0);
+}
+</style>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="wa-envelope-editor.js"></script>
+<script>
+$(function () {
+
+
+  var points = [];
+
+
+  var xToTime = function(x) {
+    return parseFloat(x);
+  };
+
+  var yToVal = function(y) {
+    return parseFloat(y);
+  };
+
+  var printCode = function (points) {
+    var lines = ['var fn = function (ctx,param) {', '  var now = ctx.currentTime;' ];
+//    points.sort( function (a,b) { return parseFloat(a.x) - parseFloat(b.x) });
+    var lastTime = 0.0;
+    for ( var i=0; i<points.length;i++ ) {
+      var p = points[i];
+      switch (p.type) {
+        case 'set':
+          lines.push( '  param.setValueAtTime(' + yToVal(p.y).toString() + ', now + ' + xToTime(p.x) + ');' );
+          break;
+        case 'linear':
+          lines.push( '  param.linearRampToValueAtTime(' + yToVal(p.y).toString() + ', now + ' + xToTime(p.x) + ');' );
+          break;
+        case 'exponential':
+          lines.push( '  param.exponentialRampToValueAtTime(' + yToVal(p.y).toString() + ', now + ' + xToTime(p.x) + ');' );
+          break;
+        case 'target':
+          lines.push( '  param.setTargetAtTime(' + yToVal(p.y).toString() + ', now + ' + xToTime(p.x).toString() + ', ' + xToTime(p.c) + ');' );
+
+      }
+      lastTime = xToTime(p.x);
+    }
+    lines.push( '};' );
+    return lines.join('\n');
+  };
+
+
+
+// test
+  var points = [
+    { type: 'set', x: 0, y: -3 },
+
+    { type: 'set', x: 0.2, y: -2 },
+    { type: 'set', x: 0.4, y: 3 },
+    { type: 'set', x: 0.6, y: -2.3 },
+    { type: 'target', x: 0.8, y: 4, c:.3 },
+    { type: 'target', x: 1, y: -2.1,c:.2 },
+    { type: 'set', x: 1.2, y: 4 },
+    { type: 'target', x: 2, y: 0, c:1 },
+    { type: 'linear', x: 3, y: 5 },
+    { type: 'exponential', x: 4, y: 2},
+    { type: 'linear', x: 5, y: 3 },
+    { type: 'target', x: 6, y: -2, c:1 }
+  ];
+//  points.reverse();
+  var code = printCode(points);
+  console.log(code);
+  var fn = eval(code + 'fn');
+
+
+  var canvas = $('#drawer').get(0);
+  var ctx = canvas.getContext('2d');
+
+  var canvas2 = $('#sim-drawer').get(0);
+  var ctx2 = canvas2.getContext('2d');
+  ctx2.strokeStyle = 'rgba(0,255,0,0.4)';
+  var sim = new EnvelopeSimDrawer(ctx2);
+  sim.draw(points);
+
+  ctx.strokeStyle = 'rgba(255,0,0,0.4)';
+  ctx.lineWidth = 2;
+  var AudioContext = window.AudioContext || webkitAudioContext || mozAudioContext;
+  var actx = new AudioContext();
+  var drawer = new EnvelopeDrawer(ctx,actx,10);
+
+    drawer.draw(fn);
+  setInterval( function(){
+    ctx.clearRect(0,0,1000,500);
+    drawer.draw(fn);
+  },8000);
+
+
+});
+</script>
+</head>
+<body>
+
+<canvas id="drawer" width="1000" height="600"></canvas>
+<canvas id="sim-drawer" width="1000" height="600"></canvas>
+</body>
+
+</html>

@@ -287,7 +287,7 @@
     }
 
 
-    var h = this.height / this.zoomY - this.offsetX / this.zoomY;
+    var h = this.height / this.zoomY - this.offsetY / this.zoomY;
     var top =  - this.offsetY;
     var bottom = this.height / this.zoomY - this.offsetY;
     var spanY = Math.pow(10,Math.round(Math.log10(200 / this.zoomY)));

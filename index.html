@@ -5,6 +5,11 @@
   position: fixed;
   top: 30px;
   background: rgba(0,0,0,0.0);
+  border: 1px solid #888;
+}
+
+#grid {
+  z-index: 10000;
 }
 </style>
 <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
@@ -110,10 +115,86 @@ $(function () {
     drawer.zoomY = sim.zoomY = grid.zoomY = zoomY;
     drawer.offsetX = sim.offsetX = grid.offsetX = offsetX;
     drawer.offsetY = sim.offsetY = grid.offsetY = offsetY;
-    drawer.draw(fn);
+    if ( !dragging ) drawer.draw(fn);
     sim.draw(points);
     grid.draw();
   }
+
+  var last = 0;
+  $('#grid').on('mousemove', function (e) {
+    $('#stat').text(
+      'x: ' + e.offsetX
+    + ' y: ' + e.offsetY
+    + ' ' + ( e.offsetX * zoomX / 44100 - offsetX) + 's '
+    + ((height - e.offsetY) / zoomY - offsetY)
+    );
+  });
+
+  function screenX2X (x) {
+    return x * zoomX / 44100 - offsetX;
+  }
+
+  function screenY2Y (y) {
+    return (height - y) / zoomY - offsetY;
+  }
+
+  function x2ScreenX (x) {
+    return (x + offsetX) * 44100 / zoomX;
+  }
+
+  function y2ScreenY (y) {
+    return height - (y + offsetY) * zoomY;
+  }
+
+
+  var dragging = false;
+  var dragBegin;
+  $('#grid').on('mousedown', function (e) {
+    dragBegin = [e.offsetX,e.offsetY, offsetX, offsetY];
+    dragging = true;
+    return false;
+  });
+
+  $('#grid').on('mousemove', function (e) {
+    if ( dragging ) {
+      offsetX = dragBegin[2] - (dragBegin[0] - e.offsetX) * zoomX / 44100;
+      offsetY = dragBegin[3] + (dragBegin[1] - e.offsetY) / zoomY;
+      redraw();
+      return false;
+    }
+  });
+
+  $('#grid').on('mouseup', function (e) {
+    dragging = false;
+    redraw();
+    return false;
+  });
+
+  $('#grid').on('mousewheel', function (e) {
+    if ( !e.originalEvent.deltaX && !e.originalEvent.deltaY ) return false;
+    var now = (new Date()).getTime();
+    if ( now < last + 300 ) return false;
+    last = now;
+    var sx = e.offsetX;
+    var sy = e.offsetY;
+    var xx = screenX2X(sx);
+    var yy = screenY2Y(sy);
+
+    zoomX *= e.originalEvent.deltaX > 0 ? 2 : e.originalEvent.deltaX < 0 ? 0.5 : 1;
+    zoomY *= e.originalEvent.deltaY > 0 ? 0.5 : e.originalEvent.deltaY < 0 ? 2 : 1;
+
+    if ( zoomX < 1 ) zoomX = 1;
+    offsetX = -screenX2X(x2ScreenX(xx) - sx);
+    offsetY = -screenY2Y(height + (y2ScreenY(yy) -  sy));
+    redraw();
+    $('#stat').text(
+      'x: ' + e.offsetX
+    + ' y: ' + e.offsetY
+    + ' ' + ( e.offsetX * zoomX / 44100 - offsetX) + 's '
+    + ((height - e.offsetY) / zoomY - offsetY)
+    );
+    return false;
+  });
 
   $('.zoom').click( function () {
     if ( $(this).attr('data-axis') === 'x' ) {
@@ -174,7 +255,7 @@ $(function () {
 <button class="offset" data-axis="x" data-op="-">X-</button>
 <button class="offset" data-axis="y" data-op="+">Y+</button>
 <button class="offset" data-axis="y" data-op="-">Y-</button>
-
+<span id="stat"></span>
 </body>
 
 </html>

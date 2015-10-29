@@ -4,7 +4,9 @@
     this.canvas2dContext = canvas2dContext;
     this.audioContext = audioContext;
     this.zoomX = 128;
-    this.zoomY = 50;
+    this.zoomY = 64;
+    this.offsetX = 0;
+    this.offsetY = 0;
     this.height = this.canvas2dContext.canvas.height;
     this.width = this.canvas2dContext.canvas.width;
     this._processorSize = 8192 / 8;
@@ -36,6 +38,14 @@
     osc.start(0);
   };
 
+  EnvelopeDrawer.prototype.moveTo = function (x,y) {
+    this.canvas2dContext.moveTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (y + this.offsetY) * this.zoomY);
+  };
+
+  EnvelopeDrawer.prototype.lineTo = function (x,y) {
+    this.canvas2dContext.lineTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (y + this.offsetY) * this.zoomY);
+  };
+
   EnvelopeDrawer.prototype.buildProcessor = function () {
     if (this.__terminate) this.__terminate();
     var running = true;
@@ -58,9 +68,9 @@
         if ( isNaN(min) || data[i] < min ) min = data[i];
         if ( that.playedSamples++ % that.zoomX === 0) {
           if ( !running ) { console.log('!!!'); return; }
-          var x = parseFloat(that.playedSamples / that.zoomX);
-          that.path.push([x,that.height / 2 - min * that.zoomY]);
-          that.path.push([x,that.height / 2 - max * that.zoomY - 1]);
+          var x = that.playedSamples / 44100;
+          that.path.push([x, min]);
+          that.path.push([x, max]);
           min = NaN;
           max = NaN;
           that.drawPath();
@@ -99,10 +109,10 @@
       if ( toDraw.length ) {
         var ctx = that.canvas2dContext;
         ctx.beginPath();
-        ctx.moveTo(that.lastPos[0],that.lastPos[1]);
+        that.moveTo( that.lastPos[0], that.lastPos[1]);
         var len = toDraw.length;
         for ( var i=0;i<len;i++ ) {
-          ctx.lineTo( toDraw[i][0], toDraw[i][1]);
+          that.lineTo( toDraw[i][0], toDraw[i][1]);
         }
         if ( that.resetting ) { console.log('!2'); return; }
         ctx.stroke();
@@ -141,9 +151,13 @@
   var EnvelopeSimDrawer = function (canvas2dContext) {
     this.canvas2dContext = canvas2dContext;
     this.zoomX = 128;
-    this.zoomY = 50;
+    this.zoomY = 64;
     this.height = this.canvas2dContext.canvas.height;
     this.width = this.canvas2dContext.canvas.width;
+  };
+
+  EnvelopeSimDrawer.prototype.lineTo = function (x,y) {
+    this.canvas2dContext.lineTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (y + this.offsetY) * this.zoomY);
   };
 
   EnvelopeSimDrawer.prototype.draw = function (points) {
@@ -173,8 +187,8 @@
       switch ( p.type ) {
         case 'set':
           //if ( n.type === 'linear' || n.type === 'exponential' ) {
-            ctx.lineTo(p.x * 44100 / this.zoomX, this.height / 2 - y * this.zoomY);
-            ctx.lineTo(p.x * 44100 / this.zoomX, this.height / 2 - p.y * this.zoomY);
+            this.lineTo(p.x, y);
+            this.lineTo(p.x, p.y);
           //}
           x = p.x;
           y = p.y;
@@ -184,7 +198,7 @@
         case 'linear':
           x = p.x;
           y = p.y;
-          ctx.lineTo(x * 44100 / this.zoomX, this.height / 2 - y * this.zoomY);
+          this.lineTo(x, y);
           mode = 'linear';
           running = false;
           break;
@@ -199,16 +213,16 @@
           for ( var st = Math.floor(st0) + 1;st<st1;st++ ) {
             var t = st * this.zoomX / 44100;
             var v = v0 * Math.pow( v1/v0, (t - t0) / (t1 - t0));
-            ctx.lineTo(st, this.height / 2 - v * this.zoomY);
+            this.lineTo(t, v);
           }
           x = p.x;
           y = p.y;
           running = false;
           break;
         case 'target':
+          this.lineTo(p.x, y);
           if ( n.type === 'linear' || n.type === 'exponential' ) {
-            ctx.lineTo(p.x * 44100 / this.zoomX, this.height / 2 - y * this.zoomY);
-            ctx.lineTo(p.x * 44100 / this.zoomX, this.height / 2 - p.y * this.zoomY);
+            this.lineTo(p.x, p.y);
             x = p.x;
             y = p.y;
             break;
@@ -222,7 +236,7 @@
           for ( var st = Math.floor(st0) + 1;st<st1;st++ ) {
             var t = st * this.zoomX / 44100;
             var v = v1 + (v0 - v1) * Math.exp( -1 * (t-t0)/p.c);
-            ctx.lineTo(st, this.height / 2 - v * this.zoomY);
+            this.lineTo(t,v);
           }
           x = t1;
           y = v;
@@ -230,7 +244,7 @@
         default:
       }
       if ( n.type === 'end' ) {
-        ctx.lineTo(this.width, this.height / 2 - p.y * this.zoomY);
+        this.lineTo(999999, p.y);
       }
       console.log(p.type,x,y);
     }

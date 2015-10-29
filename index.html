@@ -1,13 +1,26 @@
 <html>
 <head>
 <style>
+
+div,section,canvas,body {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+#screen {
+  position: related;
+  width: 100%;
+  height: 100%;
+}
+
 #drawer, #sim-drawer, #grid, #points {
-  position: fixed;
-  top: 30px;
+  position: absolute;
+  top: 0;
+  left: 0;
   background: rgba(0,0,0,0.0);
-  border: 1px solid #888;
-  width: 1000px;
-  height: 600px;
+  width: 100%;
+  height: 100%;
 }
 
 #grid {
@@ -29,6 +42,28 @@
 .point.exponential {
   border: 2px solid #00f;
 }
+
+.point.selected {
+  background: #f00;
+}
+
+#menu {
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 10000000;
+  width: 30%;
+  margin: 10px;
+  border: 1px solid #444;
+  background: rgba(0,0,0,0.7);
+}
+
+#code {
+  width: 100%;
+  height: 150px;
+  background: rgba(255,255,255,0.5);
+}
+
 </style>
 <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
 <script src="wa-envelope-editor.js"></script>
@@ -81,7 +116,13 @@ $(function () {
   var points = [];
 
   var code = printCode(points);
-  var fn = eval(code + 'fn');
+  try {
+    fn = eval(code + 'fn');
+  }
+  catch (e) {
+
+  };
+  $('#code').val(code);
 
   var canvas = $('#drawer').get(0);
   var ctx = canvas.getContext('2d');
@@ -117,14 +158,19 @@ $(function () {
     drawer.zoomY = sim.zoomY = grid.zoomY = zoomY;
     drawer.offsetX = sim.offsetX = grid.offsetX = offsetX;
     drawer.offsetY = sim.offsetY = grid.offsetY = offsetY;
-    if ( !dragging ) {
-      code = printCode(points);
-      fn = eval(code + ';fn');
-      drawer.draw(fn);
-    }
     sim.draw(points);
     grid.draw();
     refreshPoints();
+    if ( !dragging ) {
+      code = printCode(points);
+      try {
+        fn = eval(code + 'fn');
+      }
+      catch (e) {
+      }
+      $('#code').val(code);
+      drawer.draw(fn);
+    }
   }
 
   var last = 0;
@@ -157,14 +203,27 @@ $(function () {
 
   var dragging = false;
   var dragBegin;
+  $('#grid').on('click', function (e) {
+    if ( dragging ) {
+      dragging = false;
+      return false;
+    }
+    if ( e.altKey ) {
+      addPoint( screenX2X(e.offsetX),screenY2Y(e.offsetY),'set',1);
+      refreshPoints();
+      rebuildPoints();
+    }
+  });
+
+
   $('#grid').on('mousedown', function (e) {
     dragBegin = [e.offsetX,e.offsetY, offsetX, offsetY];
-    dragging = true;
     return false;
   });
 
   $('#grid').on('mousemove', function (e) {
-    if ( dragging ) {
+    if ( dragBegin ) {
+      dragging = true;
       offsetX = dragBegin[2] - (dragBegin[0] - e.offsetX) * zoomX / 44100;
       offsetY = dragBegin[3] + (dragBegin[1] - e.offsetY) / zoomY;
       redraw();
@@ -173,7 +232,7 @@ $(function () {
   });
 
   $('#grid').on('mouseup', function (e) {
-    dragging = false;
+    dragBegin = false;
     redraw();
     return false;
   });
@@ -271,27 +330,48 @@ $(function () {
     set: 'target',
     target: 'linear'
   };
-  $(document).on('click', '.point', function () {
+  var selectedPoint;
+  $(document).on('click', '.point', function (e) {
     if ( $(this).attr('data-dragging') ) {
       $(this).removeAttr('data-dragging');
       return;
     }
-    var newType = typeLoop[$(this).attr('data-type')];
-    $(this).removeClass('set target exponential linear');
-    $(this).attr('data-type', newType);
-    $(this).addClass(newType);
-    rebuildPoints();
+    if ( e.shiftKey ) {
+      $(this).remove();
+      rebuildPoints();
+      return false;
+    }
+    if ( e.altKey ) {
+      var newType = typeLoop[$(this).attr('data-type')];
+      $(this).removeClass('set target exponential linear');
+      $(this).attr('data-type', newType);
+      $(this).addClass(newType);
+      rebuildPoints();
+      return false;
+    }
+    if ( selectedPoint ) {
+      selectedPoint.removeClass('selected');
+    }
+    $(this).addClass('selected');
+    selectedPoint = $(this);
+    showInfo();
   });
 
+  function showInfo () {
+    $('#point-info').find('.time').text( selectedPoint.attr('data-x') );
+    $('#point-info').find('.value').text( selectedPoint.attr('data-y') );
+    $('#point-info').find('.const').text( selectedPoint.attr('data-c') );
+  }
 
   var pdragging = false;
   var pdragBegin;
+
   $(document).on('mousedown', '.point', function (e) {
     pdragging = $(this);
     return false;
   });
 
-  $('#points').on('mousemove', function (e) {
+  $('#grid').on('mousemove', function (e) {
     if ( pdragging && $(e.target).is('#grid') ) {
       pdragging
         .css({
@@ -302,6 +382,7 @@ $(function () {
         .attr('data-y', screenY2Y(e.offsetY))
         .attr('data-dragging', 1)
       rebuildPoints();
+      showInfo();
       return false;
     }
   });
@@ -327,25 +408,26 @@ $(function () {
 
   for ( var i=0;i<startPoints.length;i++) {
     var p = startPoints[i];
-    var x = x2ScreenX(p.x);
-    var y = y2ScreenY(p.y);
+    addPoint(p.x,p.y,p.type,p.c);
+  }
+
+  function addPoint (x,y,type,c) {
     var div = $('<div />')
       .css({
         position: 'absolute',
         width: '5px',
         height: '5px',
-        'z-Index': 99999999
+        'z-Index': 99999
       })
       .addClass('point')
-      .addClass(p.type)
-      .attr('data-type', p.type)
-      .attr('data-x', p.x)
-      .attr('data-y', p.y)
-      .attr('data-c', p.c)
+      .addClass(type)
+      .attr('data-type', type)
+      .attr('data-x', x)
+      .attr('data-y', y)
+      .attr('data-c', c || 1)
       .appendTo( $('#points') );
   }
-  rebuildPoints();
-  redraw();
+
   function rebuildPoints () {
     points = [];
     $('.point').each( function () {
@@ -358,28 +440,63 @@ $(function () {
     });
     points.sort( function (a,b){ return a.x - b.x });
     code = printCode(points);
-    fn = eval(code + 'fn');
+    try {
+      fn = eval(code + 'fn');
+    }
+    catch (e) {
+
+    }
+    $('#code').val(code);
     redraw();
   };
+
+  function resize() {
+
+    width = sim.width = drawer.width = grid.width
+      = sim.canvas2dContext.canvas.width
+      = grid.canvas2dContext.canvas.width
+      = drawer.canvas2dContext.canvas.width
+      = $(window).width();
+    height = sim.height = drawer.height = grid.height
+      = sim.canvas2dContext.canvas.height
+      = grid.canvas2dContext.canvas.height
+      = drawer.canvas2dContext.canvas.height
+      = $(window).height();
+
+    ctx.strokeStyle = 'rgba(255,0,0,0.4)';
+    ctx2.strokeStyle = 'rgba(0,255,0,0.4)';
+    ctx3.strokeStyle = 'rgba(128,128,128,0.4)';
+
+    rebuildPoints();
+    refreshPoints();
+  }
+  $(window).on('resize', resize);
+  resize();
 });
 </script>
 </head>
 <body>
 
-<div id="points" width="1000" height="600" />
-<canvas id="drawer" width="1000" height="600"></canvas>
-<canvas id="sim-drawer" width="1000" height="600"></canvas>
-<canvas id="grid" width="1000" height="600"></canvas>
-
-<button class="zoom" data-axis="x" data-op="+">X+</button>
-<button class="zoom" data-axis="x" data-op="-">X-</button>
-<button class="zoom" data-axis="y" data-op="+">Y+</button>
-<button class="zoom" data-axis="y" data-op="-">Y-</button>
-<button class="offset" data-axis="x" data-op="+">X+</button>
-<button class="offset" data-axis="x" data-op="-">X-</button>
-<button class="offset" data-axis="y" data-op="+">Y+</button>
-<button class="offset" data-axis="y" data-op="-">Y-</button>
-<span id="stat"></span>
+<section id="screen">
+  <div id="points" width="1000" height="600" /></div>
+  <canvas id="drawer" width="1000" height="600"></canvas>
+  <canvas id="sim-drawer" width="1000" height="600"></canvas>
+  <canvas id="grid" width="1000" height="600"></canvas>
+</section>
+<section id="menu">
+  <div>
+    <h2>code</h2>
+    <textarea id="code"></textarea>
+  </div>
+  <div id="point-info">
+    <h2>Info</h2>
+    <ul>
+      <li>t: <span class="time"></span></li>
+      <li>v: <span class="value"></span></li>
+      <li>c: <span class="const"></span></li>
+    </ul>
+  </div>
+</section>
 </body>
 
 </html>

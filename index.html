@@ -127,18 +127,18 @@ $(function () {
   $('.offset').click( function () {
     if ( $(this).attr('data-axis') === 'x' ) {
       if ( $(this).attr('data-op') === '+' ) {
-        offsetX += 1 / zoomX;
+        offsetX += 100 * zoomX / 44100;
       }
       else {
-        offsetX -= 1 / zoomX;
+        offsetX -= 100 * zoomX / 44100;
       }
     }
     else {
       if ( $(this).attr('data-op') === '+' ) {
-        offsetY += zoomY * 0.1;
+        offsetY += 50 / zoomY;
       }
       else {
-        offsetY -= zoomY * 0.1;
+        offsetY -= 50 / zoomY;
       }
     }
     redraw();

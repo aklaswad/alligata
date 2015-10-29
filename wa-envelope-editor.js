@@ -227,14 +227,85 @@
       if ( n.type === 'end' ) {
         this.lineTo(999999, p.y);
       }
-      console.log(p.type,x,y);
     }
     ctx.stroke();
   };
 
+  var GridDrawer = function (canvas2dContext) {
+    this.canvas2dContext = canvas2dContext;
+    this.zoomX = 128;
+    this.zoomY = 64;
+    this.height = this.canvas2dContext.canvas.height;
+    this.width = this.canvas2dContext.canvas.width;
+  };
+
+  GridDrawer.prototype.moveTo = function (x,y) {
+    this.canvas2dContext.moveTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (y + this.offsetY) * this.zoomY);
+  };
+
+  GridDrawer.prototype.lineTo = function (x,y) {
+    this.canvas2dContext.lineTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (y + this.offsetY) * this.zoomY);
+  };
+
+  GridDrawer.prototype.drawHorizontalLine = function (y) {
+    var ctx = this.canvas2dContext;
+    ctx.beginPath();
+    this.moveTo(-this.offsetX,y);
+    this.lineTo((this.width * this.zoomX / 44100) - this.offsetX, y);
+    ctx.stroke();
+    ctx.fillText(parseFloat(y).toString(), 5, this.height - ( y + this.offsetY) * this.zoomY - 8);
+
+  };
+
+  GridDrawer.prototype.drawVerticalLine = function (x) {
+    var ctx = this.canvas2dContext;
+    ctx.beginPath();
+    var xx = (x + this.offsetX) * 44100 / this.zoomX;
+    ctx.moveTo(xx, 0);
+    ctx.lineTo(xx,this.height);
+    ctx.stroke();
+    ctx.fillText(x.toString(), xx, this.height - 10);
+  };
+
+  GridDrawer.prototype.draw = function () {
+    var ctx = this.canvas2dContext;
+    ctx.beginPath();
+    var w = this.width * this.zoomX / 44100 - this.offsetX * this.zoomX / 44100;
+    var left =  - this.offsetX;
+    var right = this.width * this.zoomX / 44100 - this.offsetX;
+
+    var spanX = Math.pow(10,Math.round(Math.log10(200 * this.zoomX / 44100 )));
+
+    var spanX2 = Math.pow(10,Math.round(Math.log10(300 * this.zoomX / 44100))) / 2;
+
+    spanX = spanX < spanX2 ? spanX : spanX2;
+    for ( var x = 0; left<x; x-=spanX ) {
+      if (x < right ) this.drawVerticalLine(x);
+    }
+    for ( var x = 0; x<right; x+=spanX ) {
+      if ( left < x ) this.drawVerticalLine(x);
+    }
+
+
+    var h = this.height / this.zoomY - this.offsetX / this.zoomY;
+    var top =  - this.offsetY;
+    var bottom = this.height / this.zoomY - this.offsetY;
+    var spanY = Math.pow(10,Math.round(Math.log10(200 / this.zoomY)));
+    var spanY2 = Math.pow(10,Math.round(Math.log10(300 / this.zoomY))) / 2;
+
+    spanY = spanY < spanY2 ? spanY : spanY2;
+    for ( var y = 0; top<y; y-=spanY ) {
+      if (y < bottom ) this.drawHorizontalLine(y);
+    }
+    for ( var y = 0; y<bottom; y+=spanY ) {
+      if ( top < y ) this.drawHorizontalLine(y);
+    }
+
+
+  };
 
   window.EnvelopeDrawer = EnvelopeDrawer;
   window.EnvelopeSimDrawer = EnvelopeSimDrawer;
-
+  window.GridDrawer = GridDrawer;
 
 })();

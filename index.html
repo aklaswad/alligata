@@ -1,10 +1,9 @@
 <html>
 <head>
 <style>
-#drawer, #sim-drawer {
+#drawer, #sim-drawer, #grid {
   position: fixed;
   top: 30px;
-  border: 4px solid #f00;
   background: rgba(0,0,0,0.0);
 }
 </style>
@@ -79,15 +78,20 @@ $(function () {
 
   var canvas = $('#drawer').get(0);
   var ctx = canvas.getContext('2d');
+  ctx.strokeStyle = 'rgba(255,0,0,0.4)';
+  ctx.lineWidth = 1;
 
   var canvas2 = $('#sim-drawer').get(0);
   var ctx2 = canvas2.getContext('2d');
   ctx2.strokeStyle = 'rgba(0,255,0,0.4)';
   var sim = new EnvelopeSimDrawer(ctx2);
 
+  var canvas3 = $('#grid').get(0);
+  var ctx3 = canvas3.getContext('2d');
+  ctx3.strokeStyle = 'rgba(128,128,128,0.3)';
+  ctx3.fillStyle = 'rgba(128,128,128,1)';
+  var grid = new GridDrawer(ctx3);
 
-  ctx.strokeStyle = 'rgba(255,0,0,0.4)';
-  ctx.lineWidth = 1;
   var AudioContext = window.AudioContext || webkitAudioContext || mozAudioContext;
   var actx = new AudioContext();
   var drawer = new EnvelopeDrawer(ctx,actx,10);
@@ -98,16 +102,17 @@ $(function () {
   var zoomY = 64;
   var offsetX = 0;
   var offsetY = 0;
-
   function redraw () {
     ctx.clearRect(0,0,width,height);
     ctx2.clearRect(0,0,width,height);
-    drawer.zoomX = sim.zoomX = zoomX;
-    drawer.zoomY = sim.zoomY = zoomY;
-    drawer.offsetX = sim.offsetX = offsetX;
-    drawer.offsetY = sim.offsetY = offsetY;
+    ctx3.clearRect(0,0,width,height);
+    drawer.zoomX = sim.zoomX = grid.zoomX = zoomX;
+    drawer.zoomY = sim.zoomY = grid.zoomY = zoomY;
+    drawer.offsetX = sim.offsetX = grid.offsetX = offsetX;
+    drawer.offsetY = sim.offsetY = grid.offsetY = offsetY;
     drawer.draw(fn);
     sim.draw(points);
+    grid.draw();
   }
 
   $('.zoom').click( function () {
@@ -118,6 +123,7 @@ $(function () {
       else {
         zoomX *= 2;
       }
+      if ( zoomX < 1 ) zoomX = 1;
     }
     else {
       if ( $(this).attr('data-op') === '+' ) {
@@ -129,6 +135,7 @@ $(function () {
     }
     redraw();
   });
+
   $('.offset').click( function () {
     if ( $(this).attr('data-axis') === 'x' ) {
       if ( $(this).attr('data-op') === '+' ) {
@@ -157,6 +164,7 @@ $(function () {
 
 <canvas id="drawer" width="1000" height="600"></canvas>
 <canvas id="sim-drawer" width="1000" height="600"></canvas>
+<canvas id="grid" width="1000" height="600"></canvas>
 
 <button class="zoom" data-axis="x" data-op="+">X+</button>
 <button class="zoom" data-axis="x" data-op="-">X-</button>

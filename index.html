@@ -81,7 +81,6 @@ $(function () {
   var points = [];
 
   var code = printCode(points);
-  console.log(code);
   var fn = eval(code + 'fn');
 
   var canvas = $('#drawer').get(0);
@@ -130,6 +129,7 @@ $(function () {
 
   var last = 0;
   $('#grid').on('mousemove', function (e) {
+    if ( pdragging ) return true;
     $('#stat').text(
       'x: ' + e.offsetX
     + ' y: ' + e.offsetY
@@ -251,18 +251,69 @@ $(function () {
   var startPoints = [
     { type: 'set', x: 0, y: -3 },
 
-    { type: 'set', x: 0.2, y: -2 },
-    { type: 'set', x: 0.4, y: 3 },
-    { type: 'set', x: 0.6, y: -2.3 },
+    { type: 'set', x: 0.2, y: -2, c: 1 },
+    { type: 'set', x: 0.4, y: 3, c: 1 },
+    { type: 'set', x: 0.6, y: -2.3, c: 1 },
     { type: 'target', x: 0.8, y: 4, c:.3 },
     { type: 'target', x: 1, y: -2.1,c:.2 },
-    { type: 'set', x: 1.2, y: 4 },
+    { type: 'set', x: 1.2, y: 4, c:1 },
     { type: 'target', x: 2, y: 0, c:1 },
-    { type: 'linear', x: 3, y: 5 },
-    { type: 'exponential', x: 4, y: 2},
-    { type: 'linear', x: 5, y: 3 },
+    { type: 'linear', x: 3, y: 5, c:1 },
+    { type: 'exponential', x: 4, y: 2, c:1},
+    { type: 'linear', x: 5, y: 3, c:1 },
     { type: 'target', x: 6, y: -2, c:1 }
   ];
+
+
+  var typeLoop = {
+    linear: 'exponential',
+    exponential: 'set',
+    set: 'target',
+    target: 'linear'
+  };
+  $(document).on('click', '.point', function () {
+    if ( $(this).attr('data-dragging') ) {
+      $(this).removeAttr('data-dragging');
+      return;
+    }
+    var newType = typeLoop[$(this).attr('data-type')];
+    $(this).removeClass('set target exponential linear');
+    $(this).attr('data-type', newType);
+    $(this).addClass(newType);
+    rebuildPoints();
+  });
+
+
+  var pdragging = false;
+  var pdragBegin;
+  $(document).on('mousedown', '.point', function (e) {
+    pdragging = $(this);
+    return false;
+  });
+
+  $('#points').on('mousemove', function (e) {
+    if ( pdragging && $(e.target).is('#grid') ) {
+      pdragging
+        .css({
+          top: e.offsetY,
+          left: e.offsetX,
+        })
+        .attr('data-x', screenX2X(e.offsetX))
+        .attr('data-y', screenY2Y(e.offsetY))
+        .attr('data-dragging', 1)
+      rebuildPoints();
+      return false;
+    }
+  });
+
+  $('#points').on('mouseup', function (e) {
+    if ( pdragging ) {
+      pdragging = false;
+      refreshPoints();
+      return false;
+
+    }
+  });
 
 
   function refreshPoints() {
@@ -278,7 +329,6 @@ $(function () {
     var p = startPoints[i];
     var x = x2ScreenX(p.x);
     var y = y2ScreenY(p.y);
-    console.log(x,y,p.x,p.y);
     var div = $('<div />')
       .css({
         position: 'absolute',
@@ -304,12 +354,11 @@ $(function () {
       obj.y = parseFloat($(this).attr('data-y'));
       obj.c = parseFloat($(this).attr('data-c'));
       obj.type = $(this).attr('data-type');
-      console.log(obj);
       points.push(obj);
     });
+    points.sort( function (a,b){ return a.x - b.x });
     code = printCode(points);
     fn = eval(code + 'fn');
-    console.log(code,fn);
     redraw();
   };
 });

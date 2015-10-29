@@ -26,8 +26,11 @@ $(function () {
   };
 
   var printCode = function (points) {
-    var lines = ['var fn = function (ctx,param) {', '  var now = ctx.currentTime;' ];
-//    points.sort( function (a,b) { return parseFloat(a.x) - parseFloat(b.x) });
+    var lines = [
+      'var fn = function (ctx,param) {',
+      '  var now = ctx.currentTime;'
+    ];
+
     var lastTime = 0.0;
     for ( var i=0; i<points.length;i++ ) {
       var p = points[i];
@@ -69,7 +72,7 @@ $(function () {
     { type: 'linear', x: 5, y: 3 },
     { type: 'target', x: 6, y: -2, c:1 }
   ];
-//  points.reverse();
+
   var code = printCode(points);
   console.log(code);
   var fn = eval(code + 'fn');
@@ -89,14 +92,16 @@ $(function () {
   var actx = new AudioContext();
   var drawer = new EnvelopeDrawer(ctx,actx,10);
 
+  var width = 1000;
+  var height = 600;
   var zoomX = 128;
   var zoomY = 64;
   var offsetX = 0;
   var offsetY = 0;
 
   function redraw () {
-    ctx.clearRect(0,0,1000,600);
-    ctx2.clearRect(0,0,1000,600);
+    ctx.clearRect(0,0,width,height);
+    ctx2.clearRect(0,0,width,height);
     drawer.zoomX = sim.zoomX = zoomX;
     drawer.zoomY = sim.zoomY = zoomY;
     drawer.offsetX = sim.offsetX = offsetX;
@@ -127,18 +132,18 @@ $(function () {
   $('.offset').click( function () {
     if ( $(this).attr('data-axis') === 'x' ) {
       if ( $(this).attr('data-op') === '+' ) {
-        offsetX += 100 * zoomX / 44100;
+        offsetX += width * 0.1 * zoomX / 44100;
       }
       else {
-        offsetX -= 100 * zoomX / 44100;
+        offsetX -= width * 0.1 * zoomX / 44100;
       }
     }
     else {
       if ( $(this).attr('data-op') === '+' ) {
-        offsetY += 50 / zoomY;
+        offsetY += height * 0.1 / zoomY;
       }
       else {
-        offsetY -= 50 / zoomY;
+        offsetY -= height * 0.1 / zoomY;
       }
     }
     redraw();

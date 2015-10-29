@@ -128,25 +128,6 @@
   };
 
 
-  window.EnvelopeDrawer = EnvelopeDrawer;
-
-
-  var EnvelopeSim = function () {
-  };
-
-  EnvelopeSim.prototype.setValueAtTime = function (value, start) {
-
-  };
-  EnvelopeSim.prototype.setTargetAtTime = function (value, start, timeconst) {
-
-  };
-  EnvelopeSim.prototype.linearRampToValueAtTime = function (value, end) {
-
-  };
-  EnvelopeSim.prototype.exponentialRampToValueAtTime = function (value, end) {
-
-  };
-
 
   var EnvelopeSimDrawer = function (canvas2dContext) {
     this.canvas2dContext = canvas2dContext;
@@ -252,6 +233,7 @@
   };
 
 
+  window.EnvelopeDrawer = EnvelopeDrawer;
   window.EnvelopeSimDrawer = EnvelopeSimDrawer;
 
 

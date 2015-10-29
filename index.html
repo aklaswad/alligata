@@ -1,15 +1,33 @@
 <html>
 <head>
 <style>
-#drawer, #sim-drawer, #grid {
+#drawer, #sim-drawer, #grid, #points {
   position: fixed;
   top: 30px;
   background: rgba(0,0,0,0.0);
   border: 1px solid #888;
+  width: 1000px;
+  height: 600px;
 }
 
 #grid {
   z-index: 10000;
+}
+
+.point.target {
+  border: 2px solid #f84;
+}
+
+.point.set {
+  border: 2px solid #888;
+}
+
+.point.linear {
+  border: 2px solid #0f0;
+}
+
+.point.exponential {
+  border: 2px solid #00f;
 }
 </style>
 <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
@@ -60,22 +78,7 @@ $(function () {
 
 
 
-// test
-  var points = [
-    { type: 'set', x: 0, y: -3 },
-
-    { type: 'set', x: 0.2, y: -2 },
-    { type: 'set', x: 0.4, y: 3 },
-    { type: 'set', x: 0.6, y: -2.3 },
-    { type: 'target', x: 0.8, y: 4, c:.3 },
-    { type: 'target', x: 1, y: -2.1,c:.2 },
-    { type: 'set', x: 1.2, y: 4 },
-    { type: 'target', x: 2, y: 0, c:1 },
-    { type: 'linear', x: 3, y: 5 },
-    { type: 'exponential', x: 4, y: 2},
-    { type: 'linear', x: 5, y: 3 },
-    { type: 'target', x: 6, y: -2, c:1 }
-  ];
+  var points = [];
 
   var code = printCode(points);
   console.log(code);
@@ -115,9 +118,14 @@ $(function () {
     drawer.zoomY = sim.zoomY = grid.zoomY = zoomY;
     drawer.offsetX = sim.offsetX = grid.offsetX = offsetX;
     drawer.offsetY = sim.offsetY = grid.offsetY = offsetY;
-    if ( !dragging ) drawer.draw(fn);
+    if ( !dragging ) {
+      code = printCode(points);
+      fn = eval(code + ';fn');
+      drawer.draw(fn);
+    }
     sim.draw(points);
     grid.draw();
+    refreshPoints();
   }
 
   var last = 0;
@@ -236,13 +244,80 @@ $(function () {
     }
     redraw();
   });
-  redraw();
 
+
+
+// test
+  var startPoints = [
+    { type: 'set', x: 0, y: -3 },
+
+    { type: 'set', x: 0.2, y: -2 },
+    { type: 'set', x: 0.4, y: 3 },
+    { type: 'set', x: 0.6, y: -2.3 },
+    { type: 'target', x: 0.8, y: 4, c:.3 },
+    { type: 'target', x: 1, y: -2.1,c:.2 },
+    { type: 'set', x: 1.2, y: 4 },
+    { type: 'target', x: 2, y: 0, c:1 },
+    { type: 'linear', x: 3, y: 5 },
+    { type: 'exponential', x: 4, y: 2},
+    { type: 'linear', x: 5, y: 3 },
+    { type: 'target', x: 6, y: -2, c:1 }
+  ];
+
+
+  function refreshPoints() {
+    $('.point').each( function () {
+      $(this).css({
+        left: x2ScreenX( parseFloat($(this).attr('data-x')) ) - 5,
+        top: y2ScreenY( parseFloat($(this).attr('data-y')) ) - 5
+      });
+    });
+  }
+
+  for ( var i=0;i<startPoints.length;i++) {
+    var p = startPoints[i];
+    var x = x2ScreenX(p.x);
+    var y = y2ScreenY(p.y);
+    console.log(x,y,p.x,p.y);
+    var div = $('<div />')
+      .css({
+        position: 'absolute',
+        width: '5px',
+        height: '5px',
+        'z-Index': 99999999
+      })
+      .addClass('point')
+      .addClass(p.type)
+      .attr('data-type', p.type)
+      .attr('data-x', p.x)
+      .attr('data-y', p.y)
+      .attr('data-c', p.c)
+      .appendTo( $('#points') );
+  }
+  rebuildPoints();
+  redraw();
+  function rebuildPoints () {
+    points = [];
+    $('.point').each( function () {
+      var obj = {};
+      obj.x = parseFloat($(this).attr('data-x'));
+      obj.y = parseFloat($(this).attr('data-y'));
+      obj.c = parseFloat($(this).attr('data-c'));
+      obj.type = $(this).attr('data-type');
+      console.log(obj);
+      points.push(obj);
+    });
+    code = printCode(points);
+    fn = eval(code + 'fn');
+    console.log(code,fn);
+    redraw();
+  };
 });
 </script>
 </head>
 <body>
 
+<div id="points" width="1000" height="600" />
 <canvas id="drawer" width="1000" height="600"></canvas>
 <canvas id="sim-drawer" width="1000" height="600"></canvas>
 <canvas id="grid" width="1000" height="600"></canvas>

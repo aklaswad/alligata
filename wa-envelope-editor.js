@@ -220,6 +220,7 @@
             var v = v0 + (v1 - v0) * (t - t0) / (t1 - t0);
             this.lineTo(t, v);
           }
+          this.lineTo(t1,v1);
           x = p.x;
           y = p.y;
           running = false;
@@ -240,6 +241,7 @@
             var v = v0 * Math.pow( v1/v0, (t - t0) / (t1 - t0));
             this.lineTo(t, v);
           }
+          this.lineTo(t1,v1);
           x = p.x;
           y = p.y;
           running = false;

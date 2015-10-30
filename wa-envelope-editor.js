@@ -10,6 +10,7 @@
     this.height = this.canvas2dContext.canvas.height;
     this.width = this.canvas2dContext.canvas.width;
     this._processorSize = 8192 / 8;
+    this.logMode = 10;
     this.init();
   };
 
@@ -39,11 +40,22 @@
   };
 
   EnvelopeDrawer.prototype.moveTo = function (x,y) {
-    this.canvas2dContext.moveTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (y + this.offsetY) * this.zoomY);
+    if ( this.logMode ) {
+      this.canvas2dContext.moveTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (Math.log(y)/Math.log(this.logMode) + this.offsetY) * this.zoomY);
+    }
+    else {
+      this.canvas2dContext.moveTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (y + this.offsetY) * this.zoomY);
+
+    }
   };
 
   EnvelopeDrawer.prototype.lineTo = function (x,y) {
-    this.canvas2dContext.lineTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (y + this.offsetY) * this.zoomY);
+    if ( this.logMode ) {
+      this.canvas2dContext.lineTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (Math.log(y)/Math.log(this.logMode) + this.offsetY) * this.zoomY);
+    }
+    else {
+      this.canvas2dContext.lineTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (y + this.offsetY) * this.zoomY);
+    }
   };
 
   EnvelopeDrawer.prototype.buildProcessor = function () {
@@ -135,11 +147,30 @@
     this.zoomY = 64;
     this.height = this.canvas2dContext.canvas.height;
     this.width = this.canvas2dContext.canvas.width;
+    this.logMode = 10;
+  };
+
+
+  EnvelopeSimDrawer.prototype.moveTo = function (x,y) {
+    if ( this.logMode ) {
+      this.canvas2dContext.moveTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (Math.log(y)/Math.log(this.logMode) + this.offsetY) * this.zoomY);
+    }
+    else {
+      this.canvas2dContext.moveTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (y + this.offsetY) * this.zoomY);
+
+    }
   };
 
   EnvelopeSimDrawer.prototype.lineTo = function (x,y) {
-    this.canvas2dContext.lineTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (y + this.offsetY) * this.zoomY);
+    if ( this.logMode ) {
+      this.canvas2dContext.lineTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (Math.log(y)/Math.log(this.logMode) + this.offsetY) * this.zoomY);
+    }
+    else {
+      this.canvas2dContext.lineTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (y + this.offsetY) * this.zoomY);
+    }
   };
+
+
 
   EnvelopeSimDrawer.prototype.draw = function (points) {
     var ctx = this.canvas2dContext;
@@ -177,9 +208,21 @@
           running = true;
 
         case 'linear':
+          var v0 = y;
+          var v1 = p.y;
+          var t0 = x;
+          var t1 = p.x;
+          var st0 = 44100 * t0 / this.zoomX;
+          var st1 = 44100 * t1 / this.zoomX;
+          for ( var st = Math.floor(st0) + 1;st<st1;st++ ) {
+            var t = st * this.zoomX / 44100;
+            var v = v0 + (v1 - v0) * (t - t0) / (t1 - t0);
+            this.lineTo(t, v);
+          }
           x = p.x;
           y = p.y;
-          this.lineTo(x, y);
+          running = false;
+          break;
           mode = 'linear';
           running = false;
           break;
@@ -237,14 +280,25 @@
     this.zoomY = 64;
     this.height = this.canvas2dContext.canvas.height;
     this.width = this.canvas2dContext.canvas.width;
+    this.logMode = 10;
   };
 
   GridDrawer.prototype.moveTo = function (x,y) {
-    this.canvas2dContext.moveTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (y + this.offsetY) * this.zoomY);
+    if ( this.logMode ) {
+      if ( y <= 0 ) return;
+      this.canvas2dContext.moveTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (Math.log(y)/Math.log(this.logMode) + this.offsetY) * this.zoomY);
+    }
+    else
+      this.canvas2dContext.moveTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (y + this.offsetY) * this.zoomY);
   };
 
   GridDrawer.prototype.lineTo = function (x,y) {
-    this.canvas2dContext.lineTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (y + this.offsetY) * this.zoomY);
+    if ( this.logMode ) {
+      if ( y <= 0 ) return;
+      this.canvas2dContext.lineTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (Math.log(y)/Math.log(this.logMode) + this.offsetY) * this.zoomY);
+    }
+    else
+      this.canvas2dContext.lineTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (y + this.offsetY) * this.zoomY);
   };
 
   GridDrawer.prototype.drawHorizontalLine = function (y) {
@@ -253,8 +307,10 @@
     this.moveTo(-this.offsetX,y);
     this.lineTo((this.width * this.zoomX / 44100) - this.offsetX, y);
     ctx.stroke();
-    ctx.fillText(parseFloat(y).toString(), 5, this.height - ( y + this.offsetY) * this.zoomY - 8);
-
+    if ( this.logMode )
+      ctx.fillText(parseFloat(y).toString(), 5, this.height - (Math.log(y)/Math.log(this.logMode) + this.offsetY) * this.zoomY - 8);
+    else
+      ctx.fillText(parseFloat(y).toString(), 5, this.height - ( y + this.offsetY) * this.zoomY - 8);
   };
 
   GridDrawer.prototype.drawVerticalLine = function (x) {
@@ -273,12 +329,10 @@
     var w = this.width * this.zoomX / 44100 - this.offsetX * this.zoomX / 44100;
     var left =  - this.offsetX;
     var right = this.width * this.zoomX / 44100 - this.offsetX;
-
     var spanX = Math.pow(10,Math.round(Math.log10(200 * this.zoomX / 44100 )));
-
     var spanX2 = Math.pow(10,Math.round(Math.log10(300 * this.zoomX / 44100))) / 2;
-
     spanX = spanX < spanX2 ? spanX : spanX2;
+
     for ( var x = 0; left<x; x-=spanX ) {
       if (x < right ) this.drawVerticalLine(x);
     }
@@ -286,19 +340,48 @@
       if ( left < x ) this.drawVerticalLine(x);
     }
 
+    if ( this.logMode ) {
+      var top = Math.pow(this.logMode, this.height / this.zoomY - this.offsetY);
+      var bottom = Math.pow(this.logMode, - this.offsetY);
+      var range = top - bottom;
+      var lines = Math.floor(this.height / 70);
+      var n = 1;
+      var changer;
+      if ( bottom * Math.pow(this.logMode,lines) > top ) {
+        n = 1;
+        while ( bottom * Math.pow(Math.pow(this.logMode,this.logMode/n++),lines) > top ) {}
+        n = Math.pow(this.logMode,this.logMode/n);
+      }
+      else {
+        n = 1;
+        while ( bottom * Math.pow(Math.pow(this.logMode,n++),lines) < top ) {}
+        n = Math.pow(this.logMode,n);
+      }
+      var y = 1;
+      while ( y < top ) {
+        this.drawHorizontalLine(y);
+        y *= n;
+      }
+      var y = 1;
+      while ( bottom < y ) {
+        this.drawHorizontalLine(y);
+        y /= n;
+      }
 
-    var h = this.height / this.zoomY - this.offsetY / this.zoomY;
-    var top =  - this.offsetY;
-    var bottom = this.height / this.zoomY - this.offsetY;
-    var spanY = Math.pow(10,Math.round(Math.log10(200 / this.zoomY)));
-    var spanY2 = Math.pow(10,Math.round(Math.log10(300 / this.zoomY))) / 2;
-
-    spanY = spanY < spanY2 ? spanY : spanY2;
-    for ( var y = 0; top<y; y-=spanY ) {
-      if (y < bottom ) this.drawHorizontalLine(y);
     }
-    for ( var y = 0; y<bottom; y+=spanY ) {
-      if ( top < y ) this.drawHorizontalLine(y);
+    else {
+      var h = this.height / this.zoomY - this.offsetY / this.zoomY;
+      var top =  - this.offsetY;
+      var bottom = this.height / this.zoomY - this.offsetY;
+      var spanY = Math.pow(10,Math.round(Math.log10(200 / this.zoomY)));
+      var spanY2 = Math.pow(10,Math.round(Math.log10(300 / this.zoomY))) / 2;
+      spanY = spanY < spanY2 ? spanY : spanY2;
+      for ( var y = 0; top<y; y-=spanY ) {
+        if (y < bottom ) this.drawHorizontalLine(y);
+      }
+      for ( var y = 0; y<bottom; y+=spanY ) {
+        if ( top < y ) this.drawHorizontalLine(y);
+      }
     }
 
 

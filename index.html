@@ -56,6 +56,7 @@ div,section,canvas,body {
   margin: 10px;
   border: 1px solid #444;
   background: rgba(0,0,0,0.7);
+  color: #aaa;
 }
 
 #code {
@@ -143,7 +144,7 @@ $(function () {
   var AudioContext = window.AudioContext || webkitAudioContext || mozAudioContext;
   var actx = new AudioContext();
   var drawer = new EnvelopeDrawer(ctx,actx,10);
-
+  var logMode = 10;
   var width = 1000;
   var height = 600;
   var zoomX = 128;
@@ -175,12 +176,13 @@ $(function () {
 
   var last = 0;
   $('#grid').on('mousemove', function (e) {
+//console.log(e.offsetX,e.offsetY,screenY2Y(e.offsetY), y2ScreenY(screenY2Y(e.offsetY)));
     if ( pdragging ) return true;
     $('#stat').text(
       'x: ' + e.offsetX
     + ' y: ' + e.offsetY
-    + ' ' + ( e.offsetX * zoomX / 44100 - offsetX) + 's '
-    + ((height - e.offsetY) / zoomY - offsetY)
+    + ' ' + ( screenX2X(e.offsetX) ) + 's '
+    + (screenY2Y(e.offsetY))
     );
   });
 
@@ -188,8 +190,12 @@ $(function () {
     return x * zoomX / 44100 - offsetX;
   }
 
+
   function screenY2Y (y) {
-    return (height - y) / zoomY - offsetY;
+    if ( logMode )
+      return Math.exp(Math.log(logMode) * ((height - y) / zoomY - offsetY));
+    else
+      return (height - y) / zoomY - offsetY;
   }
 
   function x2ScreenX (x) {
@@ -197,7 +203,10 @@ $(function () {
   }
 
   function y2ScreenY (y) {
-    return height - (y + offsetY) * zoomY;
+    if ( logMode )
+      return height - (Math.log(y)/Math.log(logMode) + offsetY) * zoomY;
+    else
+      return height - (y + offsetY) * zoomY;
   }
 
 
@@ -246,19 +255,23 @@ $(function () {
     var sy = e.offsetY;
     var xx = screenX2X(sx);
     var yy = screenY2Y(sy);
-
     zoomX *= e.originalEvent.deltaX > 0 ? 2 : e.originalEvent.deltaX < 0 ? 0.5 : 1;
     zoomY *= e.originalEvent.deltaY > 0 ? 0.5 : e.originalEvent.deltaY < 0 ? 2 : 1;
 
     if ( zoomX < 1 ) zoomX = 1;
     offsetX = -screenX2X(x2ScreenX(xx) - sx);
-    offsetY = -screenY2Y(height + (y2ScreenY(yy) -  sy));
+    var ny = y2ScreenY(yy);
+    if ( logMode )
+      offsetY -= (sy - y2ScreenY(yy)) / zoomY;
+    else
+      offsetY = -screenY2Y(height + (y2ScreenY(yy) -  sy));
+
     redraw();
     $('#stat').text(
       'x: ' + e.offsetX
     + ' y: ' + e.offsetY
-    + ' ' + ( e.offsetX * zoomX / 44100 - offsetX) + 's '
-    + ((height - e.offsetY) / zoomY - offsetY)
+    + ' ' + ( screenX2X(e.offsetX) ) + 's '
+    + (screenY2Y(e.offsetY))
     );
     return false;
   });
@@ -308,19 +321,19 @@ $(function () {
 
 // test
   var startPoints = [
-    { type: 'set', x: 0, y: -3 },
+    { type: 'set', x: 0, y: 3 },
 
-    { type: 'set', x: 0.2, y: -2, c: 1 },
+    { type: 'set', x: 0.2, y: 1000, c: 1 },
     { type: 'set', x: 0.4, y: 3, c: 1 },
-    { type: 'set', x: 0.6, y: -2.3, c: 1 },
+    { type: 'set', x: 0.6, y: 2.3, c: 1 },
     { type: 'target', x: 0.8, y: 4, c:.3 },
-    { type: 'target', x: 1, y: -2.1,c:.2 },
+    { type: 'target', x: 1, y: 200.1,c:.2 },
     { type: 'set', x: 1.2, y: 4, c:1 },
     { type: 'target', x: 2, y: 0, c:1 },
     { type: 'linear', x: 3, y: 5, c:1 },
     { type: 'exponential', x: 4, y: 2, c:1},
     { type: 'linear', x: 5, y: 3, c:1 },
-    { type: 'target', x: 6, y: -2, c:1 }
+    { type: 'target', x: 6, y: 10000, c:1 }
   ];
 
 
@@ -358,6 +371,7 @@ $(function () {
   });
 
   function showInfo () {
+    if ( !selectedPoint ) return;
     $('#point-info').find('.time').text( selectedPoint.attr('data-x') );
     $('#point-info').find('.value').text( selectedPoint.attr('data-y') );
     $('#point-info').find('.const').text( selectedPoint.attr('data-c') );
@@ -470,6 +484,19 @@ $(function () {
     rebuildPoints();
     refreshPoints();
   }
+
+  logMode = sim.logMode = drawer.logMode = grid.logMode = 0;
+  $('input[name=view]').on('change', function () {
+    console.log(zoomX,zoomY,offsetX,offsetY);
+    var mode = $('input[name=view]:checked').val();
+console.log(mode);
+    if ( mode === 'e' )
+      mode = Math.E;
+    else
+      mode = parseInt(mode);
+    logMode = sim.logMode = drawer.logMode = grid.logMode = mode;
+    rebuildPoints();
+  });
   $(window).on('resize', resize);
   resize();
 });
@@ -484,6 +511,7 @@ $(function () {
   <canvas id="grid" width="1000" height="600"></canvas>
 </section>
 <section id="menu">
+  <div id="stat"></div>
   <div>
     <h2>code</h2>
     <textarea id="code"></textarea>
@@ -496,6 +524,16 @@ $(function () {
       <li>c: <span class="const"></span></li>
     </ul>
   </div>
+  <div id="point-info">
+    <h2>View</h2>
+    <ul>
+      <li><label><input type="radio" name="view" value="0" checked />Flat</label></li>
+      <li><label><input type="radio" name="view" value="2" />log2</label></li>
+      <li><label><input type="radio" name="view" value="e" />logE</label></li>
+      <li><label><input type="radio" name="view" value="10" />log10</label></li>
+    </ul>
+  </div>
+
 </section>
 </body>
 

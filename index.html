@@ -372,10 +372,25 @@ $(function () {
 
   function showInfo () {
     if ( !selectedPoint ) return;
-    $('#point-info').find('.time').text( selectedPoint.attr('data-x') );
-    $('#point-info').find('.value').text( selectedPoint.attr('data-y') );
-    $('#point-info').find('.const').text( selectedPoint.attr('data-c') );
+    $('#point-info').find('.type').text( selectedPoint.attr('data-type') );
+    $('#point-info').find('.time').val( selectedPoint.attr('data-x') );
+    $('#point-info').find('.value').val( selectedPoint.attr('data-y') );
+    if ( selectedPoint.attr('data-type') === 'target' )
+      $('#point-info').find('.const').show().val( selectedPoint.attr('data-c') );
+    else
+      $('#point-info').find('.const').hide();
+
   }
+
+  $('#point-info input').on('change', function () {
+    if ( selectedPoint ) {
+      selectedPoint.attr('data-x', $('#point-info').find('.time').val() );
+      selectedPoint.attr('data-y', $('#point-info').find('.value').val() );
+      selectedPoint.attr('data-c', $('#point-info').find('.const').val() );
+      rebuildPoints();
+    }
+  });
+
 
   var pdragging = false;
   var pdragBegin;
@@ -502,6 +517,7 @@ $(function () {
 </head>
 <body>
 
+<div id="stat"></div>
 <section id="screen">
   <div id="points" width="1000" height="600" /></div>
   <canvas id="drawer" width="1000" height="600"></canvas>
@@ -509,7 +525,6 @@ $(function () {
   <canvas id="grid" width="1000" height="600"></canvas>
 </section>
 <section id="menu">
-  <div id="stat"></div>
   <div>
     <h2>code</h2>
     <textarea id="code"></textarea>
@@ -517,12 +532,13 @@ $(function () {
   <div id="point-info">
     <h2>Info</h2>
     <ul>
-      <li>t: <span class="time"></span></li>
-      <li>v: <span class="value"></span></li>
-      <li>c: <span class="const"></span></li>
+      <li>type: <span class="type"></span></li>
+      <li>t: <input class="time"></input></li>
+      <li>v: <input class="value"></input></li>
+      <li>c: <input class="const"></input></li>
     </ul>
   </div>
-  <div id="point-info">
+  <div id="graph-view-info">
     <h2>View</h2>
     <ul>
       <li><label><input type="radio" name="view" value="0" checked />Flat</label></li>

@@ -152,22 +152,21 @@
 
 
   EnvelopeSimDrawer.prototype.moveTo = function (x,y) {
-    if ( this.logMode ) {
-      this.canvas2dContext.moveTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (Math.log(y)/Math.log(this.logMode) + this.offsetY) * this.zoomY);
-    }
-    else {
-      this.canvas2dContext.moveTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (y + this.offsetY) * this.zoomY);
-
-    }
+    var xx = (x+this.offsetX) * 44100 / this.zoomX;
+    var yy = this.logMode
+      ? this.height - (Math.log(y)/Math.log(this.logMode) + this.offsetY) * this.zoomY
+      : this.height - (y + this.offsetY) * this.zoomY
+      ;
+    this.canvas2dContext.moveTo(xx,yy);
   };
 
   EnvelopeSimDrawer.prototype.lineTo = function (x,y) {
-    if ( this.logMode ) {
-      this.canvas2dContext.lineTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (Math.log(y)/Math.log(this.logMode) + this.offsetY) * this.zoomY);
-    }
-    else {
-      this.canvas2dContext.lineTo((x+this.offsetX) * 44100 / this.zoomX, this.height - (y + this.offsetY) * this.zoomY);
-    }
+    var xx = (x+this.offsetX) * 44100 / this.zoomX;
+    var yy = this.logMode
+      ? this.height - (Math.log(y)/Math.log(this.logMode) + this.offsetY) * this.zoomY
+      : this.height - (y + this.offsetY) * this.zoomY
+      ;
+    this.canvas2dContext.lineTo(xx,yy);
   };
 
 
@@ -196,6 +195,8 @@
       if ( 'undefined' === typeof n ) {
         n = {type: 'end', x: this.width * this.zoomX / 44100, y:1};
       }
+      if ( (n.x+this.offsetX) * 44100 / this.zoomX < -100000) continue;
+      if ( (p.x+this.offsetX) * 44100 / this.zoomX > this.width + 100000 ) break;
       switch ( p.type ) {
         case 'set':
           //if ( n.type === 'linear' || n.type === 'exponential' ) {

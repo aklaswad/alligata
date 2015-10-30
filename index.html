@@ -323,17 +323,17 @@ $(function () {
   var startPoints = [
     { type: 'set', x: 0, y: 3 },
 
-    { type: 'set', x: 0.2, y: 1000, c: 1 },
+    { type: 'set', x: 0.2, y: 1, c: 1 },
     { type: 'set', x: 0.4, y: 3, c: 1 },
     { type: 'set', x: 0.6, y: 2.3, c: 1 },
     { type: 'target', x: 0.8, y: 4, c:.3 },
-    { type: 'target', x: 1, y: 200.1,c:.2 },
+    { type: 'target', x: 1, y: 20.1,c:.2 },
     { type: 'set', x: 1.2, y: 4, c:1 },
-    { type: 'target', x: 2, y: 0, c:1 },
+    { type: 'exponential', x: 2, y: 0, c:1 },
     { type: 'linear', x: 3, y: 5, c:1 },
-    { type: 'exponential', x: 4, y: 2, c:1},
+    { type: 'target', x: 4, y: 2, c:1},
     { type: 'linear', x: 5, y: 3, c:1 },
-    { type: 'target', x: 6, y: 10000, c:1 }
+    { type: 'target', x: 6, y: 1, c:1 }
   ];
 
 
@@ -487,9 +487,7 @@ $(function () {
 
   logMode = sim.logMode = drawer.logMode = grid.logMode = 0;
   $('input[name=view]').on('change', function () {
-    console.log(zoomX,zoomY,offsetX,offsetY);
     var mode = $('input[name=view]:checked').val();
-console.log(mode);
     if ( mode === 'e' )
       mode = Math.E;
     else

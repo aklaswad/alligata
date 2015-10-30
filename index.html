@@ -223,6 +223,7 @@ $(function () {
   $('#grid').on('click', function (e) {
     if ( dragging ) {
       dragging = false;
+      redraw();
       return false;
     }
     if ( e.altKey ) {

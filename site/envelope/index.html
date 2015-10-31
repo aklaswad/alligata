@@ -1,0 +1,735 @@
+<html>
+<head>
+<style>
+
+div,section,canvas,body {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+#screen {
+  position: related;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#drawer, #sim-drawer, #grid, #points {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: rgba(0,0,0,0.0);
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#grid {
+  z-index: 10000;
+}
+
+.point {
+  box-sizing: border-box;
+  background: rgba(0,0,0,0.6);
+  font-size: 8px;
+  text-align: center;
+  text-baseline: middle;
+  font-weight: bold;
+  color: rgba(255,255,255,0.6);
+}
+
+.point:hover {
+  cursor: pointer;
+}
+
+.point.target {
+  border-style: solid;
+  border-color: #f84;
+  border-width: 1px 1px 1px 4px;
+  border-radius: 6px 0 0 0;
+}
+
+.point.set {
+  border-style: solid;
+  border-color: #888;
+  border-width: 1px 4px 1px 4px;
+}
+
+.point.linear {
+  border-style: solid;
+  border-color: #0a0;
+  border-width: 1px 5px 1px 1px;
+}
+
+.point.exponential {
+  border-style: solid;
+  border-color: #00f;
+  border-width: 1px 5px 1px 1px;
+  border-radius: 0 0 0 10px / 0 0 0 5px;
+}
+
+.point.selected {
+  box-shadow: 0 0 1px 4px rgba(255,128,128,0.7);
+}
+
+#menu {
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 10000000;
+  width: 30%;
+  height: 90%;
+  margin: 10px;
+  border: 1px solid #444;
+  background: rgba(0,0,0,0.7);
+  color: #aaa;
+  overflow: scroll;
+}
+
+#menu h1, #menu h2, #menu ul {
+  margin: 0;
+  padding: 2px;
+}
+
+#code {
+  width: 100%;
+  height: 150px;
+  background: rgba(255,255,255,0.5);
+}
+
+#stat {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+}
+
+#help {
+  width: 60%;
+  height: 100%;
+  position: fixed;
+  padding: 10px;
+  top: 0;
+  left: 0;
+  background: rgba(0,0,0,0.6);
+  color: #ddd;
+  overflow: scroll;
+  z-index: 100000000;
+}
+
+</style>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="wa-envelope-editor.js"></script>
+<script>
+$(function () {
+
+
+  var points = [];
+
+
+  var xToTime = function(x) {
+    return parseFloat(x);
+  };
+
+  var yToVal = function(y) {
+    return parseFloat(y);
+  };
+
+  var printCode = function (points, indent) {
+    if ( typeof indent === 'undefined' ) indent = '';
+    var lines = [
+      'var now = ctx.currentTime;'
+    ];
+
+    var lastTime = 0.0;
+    for ( var i=0; i<points.length;i++ ) {
+      var p = points[i];
+      switch (p.type) {
+        case 'set':
+          lines.push( 'param.setValueAtTime(' + yToVal(p.y).toString() + ', now + ' + xToTime(p.x) + ');' );
+          break;
+        case 'linear':
+          lines.push( 'param.linearRampToValueAtTime(' + yToVal(p.y).toString() + ', now + ' + xToTime(p.x) + ');' );
+          break;
+        case 'exponential':
+          lines.push( 'param.exponentialRampToValueAtTime(' + yToVal(p.y).toString() + ', now + ' + xToTime(p.x) + ');' );
+          break;
+        case 'target':
+          lines.push( 'param.setTargetAtTime(' + yToVal(p.y).toString() + ', now + ' + xToTime(p.x).toString() + ', ' + xToTime(p.c) + ');' );
+
+      }
+      lastTime = xToTime(p.x);
+    }
+    return lines.join(indent + '\n');
+  };
+
+
+
+  var points = [];
+
+  var canvas = $('#drawer').get(0);
+  var ctx = canvas.getContext('2d');
+  ctx.strokeStyle = 'rgba(255,0,0,0.7)';
+  ctx.lineWidth = 1;
+
+  var canvas2 = $('#sim-drawer').get(0);
+  var ctx2 = canvas2.getContext('2d');
+  ctx2.strokeStyle = 'rgba(0,0,255,0.7)';
+  var sim = new EnvelopeSimDrawer(ctx2);
+
+  var canvas3 = $('#grid').get(0);
+  var ctx3 = canvas3.getContext('2d');
+  ctx3.strokeStyle = 'rgba(128,128,128,0.3)';
+  ctx3.fillStyle = 'rgba(128,128,128,1)';
+  var grid = new GridDrawer(ctx3);
+
+  var AudioContext = window.AudioContext || webkitAudioContext || mozAudioContext;
+  var actx = new AudioContext();
+  var drawer = new EnvelopeDrawer(ctx,actx,10);
+  var logMode = 10;
+  var width = 1000;
+  var height = 600;
+  var zoomX = 64;
+  var zoomY = 512;
+  var pointWidth = 16;
+  var pointHeight = 16;
+  var offsetX = 0.1;
+  var offsetY = 0.1;
+
+  var lastRedraw = 0;
+  var redrawRequested;
+  function redraw () {
+    var now = (new Date()).getTime();
+    if ( lastRedraw + 50 > now ) {
+      if ( redrawRequested ) clearTimeout( redrawRequested );
+      redrawRequested = setTimeout( redraw, 50 );
+      return;
+    }
+    lastRedraw = now;
+    ctx.clearRect(0,0,width,height);
+    ctx2.clearRect(0,0,width,height);
+    ctx3.clearRect(0,0,width,height);
+    drawer.zoomX = sim.zoomX = grid.zoomX = zoomX;
+    drawer.zoomY = sim.zoomY = grid.zoomY = zoomY;
+    drawer.offsetX = sim.offsetX = grid.offsetX = offsetX;
+    drawer.offsetY = sim.offsetY = grid.offsetY = offsetY;
+    sim.draw(points);
+    grid.draw();
+    //refreshPoints();
+    if ( !dragging ) {
+      code = printCode(points);
+      try {
+        fn = eval( 'var fn = function (ctx,param) {' + code + '}; fn;');
+      }
+      catch (e) {
+      }
+      $('#code').val(code);
+      drawer.draw(fn);
+    }
+  }
+
+  var last = 0;
+  $('#grid').on('mousemove', function (e) {
+    $('#stat').text(
+      'x: ' + e.offsetX
+    + ' y: ' + e.offsetY
+    + ' ' + ( screenX2X(e.offsetX) ) + 's '
+    + (screenY2Y(e.offsetY))
+    );
+  });
+
+  function screenX2X (x) {
+    return x * zoomX / 44100 - offsetX;
+  }
+
+
+  function screenY2Y (y) {
+    if ( logMode )
+      return Math.exp(Math.log(logMode) * ((height - y) / zoomY - offsetY));
+    else
+      return (height - y) / zoomY - offsetY;
+  }
+
+  function x2ScreenX (x) {
+    return (x + offsetX) * 44100 / zoomX;
+  }
+
+  function y2ScreenY (y) {
+    if ( logMode )
+      return height - (Math.log(y)/Math.log(logMode) + offsetY) * zoomY;
+    else
+      return height - (y + offsetY) * zoomY;
+  }
+
+
+  var dragging = false;
+  var dragBegin;
+  $('#grid').on('click', function (e) {
+    clearSelection();
+    if ( dragging ) {
+      dragging = false;
+      redraw();
+      return false;
+    }
+    if ( e.shiftKey ) {
+      var $point = addPoint( screenX2X(e.offsetX),screenY2Y(e.offsetY),'set',1);
+      selectedPoint = $point;
+      $point.addClass('selected');
+      showInfo();
+      refreshPoints();
+      rebuildPoints();
+    }
+  });
+
+
+  $('#grid').on('mousedown', function (e) {
+    dragBegin = [e.offsetX,e.offsetY, offsetX, offsetY];
+    return false;
+  });
+
+  $('#grid').on('mousemove', function (e) {
+    if ( dragBegin ) {
+      dragging = true;
+      offsetX = dragBegin[2] - (dragBegin[0] - e.offsetX) * zoomX / 44100;
+      offsetY = dragBegin[3] + (dragBegin[1] - e.offsetY) / zoomY;
+      redraw();
+      refreshPoints();
+      return false;
+    }
+    return true;
+  });
+
+  $('#grid').on('mouseup', function (e) {
+    dragBegin = false;
+    return false;
+  });
+
+  $('#grid').on('wheel', function (e) {
+    if ( !e.originalEvent.deltaX && !e.originalEvent.deltaY ) return false;
+    var now = (new Date()).getTime();
+    if ( now < last + 20 ) return false;
+    last = now;
+    var sx = e.originalEvent.clientX;
+    var sy = e.originalEvent.clientY;
+    var xx = screenX2X(sx);
+    var yy = screenY2Y(sy);
+    zoomX *= Math.pow(1.1, parseFloat(e.originalEvent.deltaX));
+    zoomY *= Math.pow(1.1, parseFloat(e.originalEvent.deltaY));
+    if ( zoomX < 1 ) zoomX = 1;
+    if ( zoomY > 100000 ) zoomY = 100000;
+    offsetX = -screenX2X(x2ScreenX(xx) - sx);
+    var ny = y2ScreenY(yy);
+    if ( logMode )
+      offsetY -= (sy - y2ScreenY(yy)) / zoomY;
+    else
+      offsetY = -screenY2Y(height + (y2ScreenY(yy) -  sy));
+    redraw();
+    refreshPoints();
+    $('#stat').text(
+      'x: ' + e.offsetX
+    + ' y: ' + e.offsetY
+    + ' ' + ( screenX2X(e.offsetX) ) + 's '
+    + (screenY2Y(e.offsetY))
+    );
+    return false;
+  });
+
+  $('.zoom').click( function () {
+    if ( $(this).attr('data-axis') === 'x' ) {
+      if ( $(this).attr('data-op') === '+' ) {
+        zoomX /= 2;
+      }
+      else {
+        zoomX *= 2;
+      }
+      if ( zoomX < 1 ) zoomX = 1;
+    }
+    else {
+      if ( $(this).attr('data-op') === '+' ) {
+        zoomY *= 2;
+      }
+      else {
+        zoomY /= 2;
+      }
+    }
+    redraw();
+  });
+
+  $('.offset').click( function () {
+    if ( $(this).attr('data-axis') === 'x' ) {
+      if ( $(this).attr('data-op') === '+' ) {
+        offsetX += width * 0.1 * zoomX / 44100;
+      }
+      else {
+        offsetX -= width * 0.1 * zoomX / 44100;
+      }
+    }
+    else {
+      if ( $(this).attr('data-op') === '+' ) {
+        offsetY += height * 0.1 / zoomY;
+      }
+      else {
+        offsetY -= height * 0.1 / zoomY;
+      }
+    }
+    redraw();
+  });
+
+  var typeLoop = {
+    linear: 'exponential',
+    exponential: 'set',
+    set: 'target',
+    target: 'linear'
+  };
+
+  var typeInitial = {
+    linear: 'L',
+    exponential: 'E',
+    set: 'S',
+    target: 'T'
+  }
+
+  var selectedPoint;
+  function clearSelection () {
+    if ( selectedPoint ) {
+      selectedPoint.removeClass('selected');
+    }
+    selectedPoint = false;
+    showInfo();
+  };
+
+  $(document).on('click', '.point', function (e) {
+    if ( e.shiftKey ) {
+      $(this).remove();
+      rebuildPoints();
+      clearSelection();
+      return false;
+    }
+    if ( e.altKey ) {
+      var newType = typeLoop[$(this).attr('data-type')];
+      $(this).removeClass('set target exponential linear');
+      $(this).attr('data-type', newType);
+      $(this).addClass(newType);
+      $(this).text(typeInitial[newType]);
+      rebuildPoints();
+      clearSelection();
+      return false;
+    }
+    if ( selectedPoint ) {
+      selectedPoint.removeClass('selected');
+    }
+    selectedPoint = $(this);
+    $(this).addClass('selected');
+    showInfo();
+  });
+
+  function showInfo () {
+    if ( !selectedPoint ) {
+      $('#point-info').hide();
+      return;
+    }
+    else {
+      $('#point-info').show();
+    }
+
+    $('#point-info').find('.type').text( selectedPoint.attr('data-type') );
+    $('#point-info').find('.time').val( selectedPoint.attr('data-x') );
+    $('#point-info').find('.value').val( selectedPoint.attr('data-y') );
+    if ( selectedPoint.attr('data-type') === 'target' )
+      $('#point-info').find('.const-wrapper').show().find('.const').val( selectedPoint.attr('data-c') );
+    else
+      $('#point-info').find('.const-wrapper').hide();
+
+  }
+
+  $('#point-info input').on('change', function () {
+    if ( selectedPoint ) {
+      selectedPoint.attr('data-x', $('#point-info').find('.time').val() );
+      selectedPoint.attr('data-y', $('#point-info').find('.value').val() );
+      selectedPoint.attr('data-c', $('#point-info').find('.const').val() );
+      rebuildPoints();
+    }
+  });
+
+
+
+  var lastRefresh = 0;
+  var refreshPointsRequested;
+  function refreshPoints() {
+
+    var now = (new Date()).getTime();
+    if ( lastRefresh + 50 > now ) {
+      if ( refreshPointsRequested ) clearTimeout( refreshPointsRequested );
+      refreshPointsRequested = setTimeout( refreshPoints, 50 );
+      return;
+    }
+    lastRefresh = now;
+
+    $('.point').each( function () {
+      $(this).css({
+        left: x2ScreenX( parseFloat($(this).attr('data-x')) ) - pointWidth / 2,
+        top: y2ScreenY( parseFloat($(this).attr('data-y')) ) - pointHeight / 2
+      });
+    });
+  }
+
+  var dragOffsetX,dragOffsetY;
+  var draggingPoint;
+  function addPoint (x,y,type,c) {
+    var div = $('<div />')
+      .text( typeInitial[type] )
+      .css({
+        position: 'absolute',
+        width: pointWidth + 'px',
+        height: pointHeight + 'px',
+        'z-Index': 99999
+      })
+      .addClass('point')
+      .addClass(type)
+      .attr('data-type', type)
+      .attr('data-x', x)
+      .attr('data-y', y)
+      .attr('data-c', c || 1)
+      .attr('draggable', "true")
+      .on('dragstart', function(e){
+        clearSelection();
+        selectedPoint = div;
+        div.addClass('selected');
+        draggingPoint = div;
+        dragOffsetX = parseFloat(div.css('left')) - e.originalEvent.clientX + pointWidth / 2;
+        dragOffsetY = parseFloat(div.css('top')) - e.originalEvent.clientY + pointHeight / 2;
+        var img = document.createElement("img");
+        img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"; // transparent 1x1 image
+        e.originalEvent.dataTransfer.setDragImage(img, 20,20);
+        e.originalEvent.dataTransfer.dropEffect = 'move';
+        e.originalEvent.dataTransfer.effectAllowed = 'move';
+        e.originalEvent.dataTransfer.setData('text/plain', 'dummy'); // for firefox
+      })
+      .appendTo( $('#points') );
+    return div;
+  }
+
+  $(document).on('drop', function (e) {
+    draggingPoint.attr('data-x', screenX2X(e.originalEvent.clientX + dragOffsetX));
+    draggingPoint.attr('data-y', screenY2Y(e.originalEvent.clientY + dragOffsetY));
+    rebuildPoints();
+    refreshPoints();
+    return false;
+  });
+
+  $(document).on('dragover', function (e) {
+    draggingPoint.attr('data-x', screenX2X(e.originalEvent.clientX + dragOffsetX));
+    draggingPoint.attr('data-y', screenY2Y(e.originalEvent.clientY + dragOffsetY));
+    draggingPoint.css('left', e.originalEvent.clientX + dragOffsetX - pointWidth / 2);
+    draggingPoint.css('top', e.originalEvent.clientY + dragOffsetY - pointHeight / 2);
+    rebuildPoints();
+    showInfo();
+    $('#stat').text('');
+    return false;
+  });
+
+  var mockParam = {
+    setTargetAtTime: function (val, start, cons ) {
+      addPoint(start, val, 'target', cons);
+    },
+    setValueAtTime: function (val, start ) {
+      addPoint(start, val, 'set', 1);
+    },
+    linearRampToValueAtTime: function (val, end) {
+      addPoint(end, val, 'linear', 1);
+    },
+    exponentialRampToValueAtTime: function (val, end) {
+      addPoint(end, val, 'exponential', 1);
+    }
+  };
+
+  var loadCode = function (code) {
+    var fn = eval('var fn = function (ctx,param) {' + code + '}; fn;');
+    points = [];
+    $('.point').remove();
+    fn({ currentTime: 0}, mockParam);
+  }
+
+  $('#load-code').click( function () {
+    var code = $('#code').val();
+    try {
+      loadCode(code);
+    }
+    catch(e) {
+      $('.code-error').text(e).show();
+      return;
+    };
+    $('.code-error').hide();
+    rebuildPoints();
+    refreshPoints();
+  });
+
+  function rebuildPoints () {
+    points = [];
+    $('.point').each( function () {
+      var obj = {};
+      obj.x = parseFloat($(this).attr('data-x'));
+      obj.y = parseFloat($(this).attr('data-y'));
+      obj.c = parseFloat($(this).attr('data-c'));
+      obj.type = $(this).attr('data-type');
+      points.push(obj);
+    });
+    points.sort( function (a,b){ return a.x - b.x });
+    code = printCode(points);
+    try {
+      fn = eval('var fn = function (ctx,param) {' + code + '}; fn;');
+    }
+    catch (e) {
+
+    }
+    $('#code').val(code);
+    redraw();
+  };
+
+  function resize() {
+
+    width = sim.width = drawer.width = grid.width
+      = sim.canvas2dContext.canvas.width
+      = grid.canvas2dContext.canvas.width
+      = drawer.canvas2dContext.canvas.width
+      = $(window).width();
+    height = sim.height = drawer.height = grid.height
+      = sim.canvas2dContext.canvas.height
+      = grid.canvas2dContext.canvas.height
+      = drawer.canvas2dContext.canvas.height
+      = $(window).height();
+
+    ctx.strokeStyle = 'rgba(255,0,0,0.7)';
+    ctx.line
+    ctx2.strokeStyle = 'rgba(0,0,255,0.7)';
+    ctx3.strokeStyle = 'rgba(128,128,128,0.4)';
+
+    rebuildPoints();
+    refreshPoints();
+  }
+
+  logMode = sim.logMode = drawer.logMode = grid.logMode = 0;
+
+  $('input[name=view]').on('change', function () {
+    var mode = $('input[name=view]:checked').val();
+    if ( mode === 'e' )
+      mode = Math.E;
+    else
+      mode = parseInt(mode);
+    logMode = sim.logMode = drawer.logMode = grid.logMode = mode;
+    rebuildPoints();
+    refreshPoints();
+  });
+
+  $('#view-reset').click( function () {
+    drawer.zoomX = sim.zoomX = grid.zoomX = zoomX = 256;
+    drawer.zoomY = sim.zoomY = grid.zoomY = zoomY = 32;
+    drawer.offsetX = sim.offsetX = grid.offsetX = offsetX = 0;
+    drawer.offsetY = sim.offsetY = grid.offsetY = offsetY = 0;
+    rebuildPoints();
+    refreshPoints();
+  });
+
+  $('#show-help').click( function () { $('#help').toggle() });
+  $('#hide-help').click( function () { $('#help').toggle() });
+
+  $('#load-code').click();
+  $(window).on('resize', resize);
+  resize();
+});
+</script>
+</head>
+<body>
+
+<div id="stat"></div>
+<section id="screen">
+  <div id="points" width="1000" height="600" /></div>
+  <canvas id="drawer" width="1000" height="600"></canvas>
+  <canvas id="sim-drawer" width="1000" height="600"></canvas>
+  <canvas id="grid" width="1000" height="600"></canvas>
+</section>
+<section id="menu">
+  <div>
+    <h2>code</h2>
+    <textarea id="code">
+var t0 = 0;
+var t1 = 0.1;
+var t2 = 0.2;
+var t3 = 0.3;
+var t4 = 0.325;
+var t5 = 0.5;
+var t6 = 0.6;
+var t7 = 0.7;
+var t8 = 1.0;
+var timeConstant = 0.1;
+
+param.setValueAtTime(0.2, t0);
+param.setValueAtTime(0.3, t1);
+param.setValueAtTime(0.4, t2);
+param.linearRampToValueAtTime(1, t3);
+param.linearRampToValueAtTime(0.8, t4);
+param.setTargetAtTime(.5, t4, timeConstant);
+// Compute where the setTargetAtTime will be at time t5 so we can make
+// the following exponential start at the right point so there's no
+// jump discontinuity.  From the spec, we have
+//   v(t) = 0.5 + (0.8 - 0.5)*exp(-(t-t4)/timeConstant)
+// Thus v(t5) = 0.5 + (0.8 - 0.5)*exp(-(t5-t4)/timeConstant)
+param.setValueAtTime(0.5 + (0.8 - 0.5)*Math.exp(-(t5 - t4)/timeConstant), t5);
+param.exponentialRampToValueAtTime(0.75, t6);
+param.exponentialRampToValueAtTime(0.05, t7);
+    </textarea>
+    <div class="code-error"></div>
+    <button id="load-code">load</button>
+  </div>
+  <div id="point-info">
+    <h2>Info</h2>
+    <ul>
+      <li>type: <span class="type"></span></li>
+      <li>t: <input class="time"></input></li>
+      <li>v: <input class="value"></input></li>
+      <li class="const-wrapper">c: <input class="const"></input></li>
+    </ul>
+  </div>
+  <div id="graph-view-info">
+    <h2>View</h2>
+    <ul>
+      <li><label><input type="radio" name="view" value="0" checked />Flat</label></li>
+      <li><label><input type="radio" name="view" value="2" />log2</label></li>
+      <li><label><input type="radio" name="view" value="e" />logE</label></li>
+      <li><label><input type="radio" name="view" value="10" />log10</label></li>
+    </ul>
+    <button id="view-reset">reset</button>
+
+  </div>
+  <div id="about">
+    <h2>about</h2>
+    <button id="show-help">help</button>
+  </div>
+</section>
+<section id="help" style="display: none;">
+<h1>Code</h1>
+Envelope graph will be audomatically translated to web audio code in realtime.<br />
+You can also load existing envelope code ( setValueCurveAtTime is not supported, though ;p )
+
+<h1>Mouse controls</h1>
+<h2>On points</h1>
+<dl>
+  <dt>Click</dt><dd>select point.</dd>
+  <dt>Drag</dt><dd>move point</dd>
+  <dt>Alt+Click</dt><dd>Change the point's type</dd>
+  <dt>Shift+Click</dt><dd>Remove point</dd>
+<dl>
+
+<h2>On background</h2>
+<dl>
+  <dt>Click</dt><dd>de-select point</dd>
+  <dt>Drag</dt><dd>move the graph area</dd>
+  <dt>Scroll Wheel</dt><dd>ZoomIn/ZoomOut for X,Y</dd>
+  <dt>Shift+Click</dt><dd>Add new point</dd>
+</dl>
+<button id="hide-help">close</button>
+</section>
+</body>
+
+</html>

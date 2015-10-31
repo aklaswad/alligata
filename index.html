@@ -411,6 +411,7 @@ $(function () {
       $(this).removeClass('set target exponential linear');
       $(this).attr('data-type', newType);
       $(this).addClass(newType);
+      $(this).text(typeInitial[newType]);
       rebuildPoints();
       clearSelection();
       return false;

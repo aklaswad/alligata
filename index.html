@@ -246,13 +246,17 @@ $(function () {
   var dragging = false;
   var dragBegin;
   $('#grid').on('click', function (e) {
+    clearSelection();
     if ( dragging ) {
       dragging = false;
       redraw();
       return false;
     }
-    if ( e.altKey ) {
-      addPoint( screenX2X(e.offsetX),screenY2Y(e.offsetY),'set',1);
+    if ( e.shiftKey ) {
+      var $point = addPoint( screenX2X(e.offsetX),screenY2Y(e.offsetY),'set',1);
+      selectedPoint = $point;
+      $point.addClass('selected');
+      showInfo();
       refreshPoints();
       rebuildPoints();
     }
@@ -265,7 +269,6 @@ $(function () {
   });
 
   $('#grid').on('mousemove', function (e) {
-//console.log('B');
     if ( dragBegin ) {
       dragging = true;
       offsetX = dragBegin[2] - (dragBegin[0] - e.offsetX) * zoomX / 44100;
@@ -389,10 +392,6 @@ $(function () {
   };
 
   $(document).on('click', '.point', function (e) {
-    if ( $(this).attr('data-dragging') ) {
-      $(this).removeAttr('data-dragging');
-      return;
-    }
     if ( e.shiftKey ) {
       $(this).remove();
       rebuildPoints();
@@ -411,6 +410,9 @@ $(function () {
     if ( selectedPoint ) {
       selectedPoint.removeClass('selected');
     }
+    selectedPoint = $(this);
+    $(this).addClass('selected');
+    showInfo();
   });
 
   function showInfo () {
@@ -498,6 +500,7 @@ console.log(e);
         e.originalEvent.dataTransfer.effectAllowed = 'move';
       })
       .appendTo( $('#points') );
+    return div;
   }
 
   $(document).on('drop', function (e) {

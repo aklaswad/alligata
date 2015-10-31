@@ -9,7 +9,7 @@
     this.offsetY = 0;
     this.height = this.canvas2dContext.canvas.height;
     this.width = this.canvas2dContext.canvas.width;
-    this._processorSize = 8192 / 8;
+    this._processorSize = 8192 / 4;
     this.logMode = 10;
     this.init();
   };

@@ -305,17 +305,17 @@ $(function () {
     return false;
   });
 
-  $('#grid').on('mousewheel', function (e) {
+  $('#grid').on('wheel', function (e) {
     if ( !e.originalEvent.deltaX && !e.originalEvent.deltaY ) return false;
     var now = (new Date()).getTime();
     if ( now < last + 20 ) return false;
     last = now;
-    var sx = e.offsetX;
-    var sy = e.offsetY;
+    var sx = e.originalEvent.clientX;
+    var sy = e.originalEvent.clientY;
     var xx = screenX2X(sx);
     var yy = screenY2Y(sy);
-    zoomX *= Math.pow(1.1, e.originalEvent.deltaX);
-    zoomY *= Math.pow(1.1, e.originalEvent.deltaY);
+    zoomX *= Math.pow(1.1, parseFloat(e.originalEvent.deltaX));
+    zoomY *= Math.pow(1.1, parseFloat(e.originalEvent.deltaY));
     if ( zoomX < 1 ) zoomX = 1;
     if ( zoomY > 100000 ) zoomY = 100000;
     offsetX = -screenX2X(x2ScreenX(xx) - sx);
@@ -504,6 +504,7 @@ $(function () {
         e.originalEvent.dataTransfer.setDragImage(img, 20,20);
         e.originalEvent.dataTransfer.dropEffect = 'move';
         e.originalEvent.dataTransfer.effectAllowed = 'move';
+        e.originalEvent.dataTransfer.setData('text/plain', 'dummy'); // for firefox
       })
       .appendTo( $('#points') );
     return div;

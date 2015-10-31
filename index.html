@@ -30,27 +30,33 @@ div,section,canvas,body {
 }
 
 .point.target {
-  border: 2px solid #f84;
-  border-radius: 5px 0 0 5px / 3px 0 0 3px;
+  border-style: solid;
+  border-color: #f84;
+  border-width: 3px 1px 3px 4px;
+  border-radius: 0 6px 6px 0;
 }
 
 .point.set {
-  border: 2px solid #888;
-
+  border-style: solid;
+  border-color: #888;
+  border-width: 1px 4px 1px 4px;
 }
 
 .point.linear {
-  border: 2px solid #0f0;
-  border-radius: 0 8px 8px 0;
-  width: 12px;
+  border-style: solid;
+  border-color: #0a0;
+  border-width: 3px 5px 3px 0;
 }
 
 .point.exponential {
-  border: 2px solid #00f;
+  border-style: solid;
+  border-color: #00f;
+  border-width: 3px 5px 3px 0;
+  border-radius: 0 6px 6px 0;
 }
 
 .point.selected {
-  background: #f00;
+  box-shadow: 0 0 1px 4px rgba(255,128,128,0.7);
 }
 
 #menu {
@@ -494,6 +500,32 @@ $(function () {
       .appendTo( $('#points') );
   }
 
+  var mockParam = {
+    setTargetAtTime: function (val, start, cons ) {
+      addPoint(start, val, 'target', cons);
+    },
+    setValueAtTime: function (val, start ) {
+      addPoint(start, val, 'set', 1);
+    },
+    linearRampToValueAtTime: function (val, end) {
+      addPoint(end, val, 'linear', 1);
+    },
+    exponentialRampToValueAtTime: function (val, end) {
+      addPoint(end, val, 'exponential', 1);
+    }
+  };
+
+  var loadCode = function (code) {
+    $('.point').remove();
+    var fn = eval(code);
+    fn({ currentTime: 0}, mockParam);
+  }
+
+  $('#load-code').click( function () {
+    var code = $('#code').val();
+    loadCode(code);
+    rebuildPoints();
+  });
   function rebuildPoints () {
     points = [];
     $('.point').each( function () {
@@ -575,6 +607,7 @@ $(function () {
   <div>
     <h2>code</h2>
     <textarea id="code"></textarea>
+    <button id="load-code">load</button>
   </div>
   <div id="point-info">
     <h2>Info</h2>

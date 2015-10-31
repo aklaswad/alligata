@@ -31,14 +31,18 @@ div,section,canvas,body {
 
 .point.target {
   border: 2px solid #f84;
+  border-radius: 5px 0 0 5px / 3px 0 0 3px;
 }
 
 .point.set {
   border: 2px solid #888;
+
 }
 
 .point.linear {
   border: 2px solid #0f0;
+  border-radius: 0 8px 8px 0;
+  width: 12px;
 }
 
 .point.exponential {
@@ -135,12 +139,12 @@ $(function () {
 
   var canvas = $('#drawer').get(0);
   var ctx = canvas.getContext('2d');
-  ctx.strokeStyle = 'rgba(255,0,0,0.4)';
+  ctx.strokeStyle = 'rgba(255,0,0,0.7)';
   ctx.lineWidth = 1;
 
   var canvas2 = $('#sim-drawer').get(0);
   var ctx2 = canvas2.getContext('2d');
-  ctx2.strokeStyle = 'rgba(0,255,0,0.4)';
+  ctx2.strokeStyle = 'rgba(0,0,255,0.7)';
   var sim = new EnvelopeSimDrawer(ctx2);
 
   var canvas3 = $('#grid').get(0);
@@ -159,7 +163,12 @@ $(function () {
   var zoomY = 64;
   var offsetX = 0;
   var offsetY = 0;
+
+  var lastRedraw = 0;
   function redraw () {
+    var now = (new Date()).getTime();
+    if ( lastRedraw + 50 > now ) return;
+    lastRedraw = now;
     ctx.clearRect(0,0,width,height);
     ctx2.clearRect(0,0,width,height);
     ctx3.clearRect(0,0,width,height);
@@ -258,23 +267,22 @@ $(function () {
   $('#grid').on('mousewheel', function (e) {
     if ( !e.originalEvent.deltaX && !e.originalEvent.deltaY ) return false;
     var now = (new Date()).getTime();
-    if ( now < last + 300 ) return false;
+    if ( now < last + 20 ) return false;
     last = now;
     var sx = e.offsetX;
     var sy = e.offsetY;
     var xx = screenX2X(sx);
     var yy = screenY2Y(sy);
-    zoomX *= e.originalEvent.deltaX > 0 ? 2 : e.originalEvent.deltaX < 0 ? 0.5 : 1;
-    zoomY *= e.originalEvent.deltaY > 0 ? 0.5 : e.originalEvent.deltaY < 0 ? 2 : 1;
-
+    zoomX *= Math.pow(1.1, e.originalEvent.deltaX);
+    zoomY *= Math.pow(1.1, e.originalEvent.deltaY);
     if ( zoomX < 1 ) zoomX = 1;
+    if ( zoomY > 100000 ) zoomY = 100000;
     offsetX = -screenX2X(x2ScreenX(xx) - sx);
     var ny = y2ScreenY(yy);
     if ( logMode )
       offsetY -= (sy - y2ScreenY(yy)) / zoomY;
     else
       offsetY = -screenY2Y(height + (y2ScreenY(yy) -  sy));
-
     redraw();
     $('#stat').text(
       'x: ' + e.offsetX
@@ -338,7 +346,7 @@ $(function () {
     { type: 'target', x: 0.8, y: 4, c:.3 },
     { type: 'target', x: 1, y: 20.1,c:.2 },
     { type: 'set', x: 1.2, y: 4, c:1 },
-    { type: 'exponential', x: 2, y: 0, c:1 },
+    { type: 'exponential', x: 2, y: 1, c:1 },
     { type: 'linear', x: 3, y: 5, c:1 },
     { type: 'target', x: 4, y: 2, c:1},
     { type: 'linear', x: 5, y: 3, c:1 },
@@ -521,8 +529,9 @@ $(function () {
       = drawer.canvas2dContext.canvas.height
       = $(window).height();
 
-    ctx.strokeStyle = 'rgba(255,0,0,0.4)';
-    ctx2.strokeStyle = 'rgba(0,255,0,0.4)';
+    ctx.strokeStyle = 'rgba(255,0,0,0.7)';
+    ctx.line
+    ctx2.strokeStyle = 'rgba(0,0,255,0.7)';
     ctx3.strokeStyle = 'rgba(128,128,128,0.4)';
 
     rebuildPoints();
@@ -539,6 +548,15 @@ $(function () {
     logMode = sim.logMode = drawer.logMode = grid.logMode = mode;
     rebuildPoints();
   });
+
+  $('#view-reset').click( function () {
+    drawer.zoomX = sim.zoomX = grid.zoomX = zoomX = 256;
+    drawer.zoomY = sim.zoomY = grid.zoomY = zoomY = 32;
+    drawer.offsetX = sim.offsetX = grid.offsetX = offsetX = 0;
+    drawer.offsetY = sim.offsetY = grid.offsetY = offsetY = 0;
+    rebuildPoints();
+  });
+
   $(window).on('resize', resize);
   resize();
 });
@@ -575,6 +593,7 @@ $(function () {
       <li><label><input type="radio" name="view" value="e" />logE</label></li>
       <li><label><input type="radio" name="view" value="10" />log10</label></li>
     </ul>
+    <button id="view-reset">reset</button>
   </div>
 
 </section>

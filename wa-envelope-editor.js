@@ -70,6 +70,7 @@
       if ( !running ) { console.log( '!!'); return; }
       if ( !initialized ) {
         that.playedSamples = 0;
+        that.drawedPixels = 0;
         that.path = [];
         that.lastPos = [0,0];
         initialized = true;
@@ -78,7 +79,8 @@
       for (var i=0;i<data.length;i++) {
         if ( isNaN(max) || max < data[i] ) max = data[i];
         if ( isNaN(min) || data[i] < min ) min = data[i];
-        if ( that.playedSamples++ % that.zoomX === 0) {
+        if ( that.playedSamples++ > that.drawedPixels * that.zoomX) {
+          that.drawedPixels++;
           if ( !running ) { console.log('!!!'); return; }
           var x = that.playedSamples / 44100;
           that.path.push([x, min]);
@@ -120,6 +122,9 @@
       if ( that.resetting ) { console.log('!1'); }
       if ( toDraw.length ) {
         var ctx = that.canvas2dContext;
+        ctx.fillStyle = 'rgba(255,255,255,0.05)';
+        ctx.fillRect(0,0,that.width,that.height);
+        ctx.lineWidth = 3;
         ctx.beginPath();
         that.moveTo( that.lastPos[0], that.lastPos[1]);
         var len = toDraw.length;
@@ -136,6 +141,7 @@
 
   EnvelopeDrawer.prototype.draw = function (fn) {
     this.reset();
+    this.tester.gain.value = 0;
     fn(this.audioContext, this.tester.gain);
   };
 
@@ -174,20 +180,12 @@
   EnvelopeSimDrawer.prototype.draw = function (points) {
     var ctx = this.canvas2dContext;
     ctx.beginPath();
-    var starts = [];
-    var ends = [];
-    for ( var i=0;i<points.length;i++ ) {
-      var p=points[i];
-      if ( p.type === 'set' || p.type === 'target' ) {
-        starts.push(p);
-      }
-      else {
-        ends.push(p);
-      }
-    }
     var mode = 'set';
     var x = 0, y = 0;
-    ctx.moveTo(0,0);
+    ctx.moveTo(
+      this.offsetX*44100/this.zoomX,
+      this.height - this.offset * this.zoomY
+    );
     var running;
     for ( var i=0; i < points.length; i++ ) {
       var p = points[i];

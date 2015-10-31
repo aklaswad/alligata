@@ -29,6 +29,16 @@ div,section,canvas,body {
   z-index: 10000;
 }
 
+.point {
+  box-sizing: border-box;
+  background: rgba(0,0,0,0.6);
+  font-size: 8px;
+  text-align: center;
+  text-baseline: middle;
+  font-weight: bold;
+  color: rgba(255,255,255,0.6);
+}
+
 .point:hover {
   cursor: pointer;
 }
@@ -36,8 +46,8 @@ div,section,canvas,body {
 .point.target {
   border-style: solid;
   border-color: #f84;
-  border-width: 3px 1px 3px 4px;
-  border-radius: 0 6px 6px 0;
+  border-width: 1px 1px 1px 4px;
+  border-radius: 6px 0 0 0;
 }
 
 .point.set {
@@ -49,14 +59,14 @@ div,section,canvas,body {
 .point.linear {
   border-style: solid;
   border-color: #0a0;
-  border-width: 3px 5px 3px 0;
+  border-width: 1px 5px 1px 1px;
 }
 
 .point.exponential {
   border-style: solid;
   border-color: #00f;
-  border-width: 3px 5px 3px 0;
-  border-radius: 0 6px 6px 0;
+  border-width: 1px 5px 1px 1px;
+  border-radius: 0 0 0 10px / 0 0 0 5px;
 }
 
 .point.selected {
@@ -69,10 +79,17 @@ div,section,canvas,body {
   top: 0;
   z-index: 10000000;
   width: 30%;
+  height: 90%;
   margin: 10px;
   border: 1px solid #444;
   background: rgba(0,0,0,0.7);
   color: #aaa;
+  overflow: scroll;
+}
+
+#menu h1, #menu h2, #menu ul {
+  margin: 0;
+  padding: 2px;
 }
 
 #code {
@@ -85,6 +102,20 @@ div,section,canvas,body {
   position: fixed;
   top: 0;
   left: 0;
+  z-index: 100;
+}
+
+#help {
+  width: 60%;
+  height: 100%;
+  position: fixed;
+  padding: 10px;
+  top: 0;
+  left: 0;
+  background: rgba(0,0,0,0.6);
+  color: #ddd;
+  overflow: scroll;
+  z-index: 100000000;
 }
 
 </style>
@@ -105,10 +136,10 @@ $(function () {
     return parseFloat(y);
   };
 
-  var printCode = function (points) {
+  var printCode = function (points, indent) {
+    if ( typeof indent === 'undefined' ) indent = '';
     var lines = [
-      'var fn = function (ctx,param) {',
-      '  var now = ctx.currentTime;'
+      'var now = ctx.currentTime;'
     ];
 
     var lastTime = 0.0;
@@ -116,36 +147,26 @@ $(function () {
       var p = points[i];
       switch (p.type) {
         case 'set':
-          lines.push( '  param.setValueAtTime(' + yToVal(p.y).toString() + ', now + ' + xToTime(p.x) + ');' );
+          lines.push( 'param.setValueAtTime(' + yToVal(p.y).toString() + ', now + ' + xToTime(p.x) + ');' );
           break;
         case 'linear':
-          lines.push( '  param.linearRampToValueAtTime(' + yToVal(p.y).toString() + ', now + ' + xToTime(p.x) + ');' );
+          lines.push( 'param.linearRampToValueAtTime(' + yToVal(p.y).toString() + ', now + ' + xToTime(p.x) + ');' );
           break;
         case 'exponential':
-          lines.push( '  param.exponentialRampToValueAtTime(' + yToVal(p.y).toString() + ', now + ' + xToTime(p.x) + ');' );
+          lines.push( 'param.exponentialRampToValueAtTime(' + yToVal(p.y).toString() + ', now + ' + xToTime(p.x) + ');' );
           break;
         case 'target':
-          lines.push( '  param.setTargetAtTime(' + yToVal(p.y).toString() + ', now + ' + xToTime(p.x).toString() + ', ' + xToTime(p.c) + ');' );
+          lines.push( 'param.setTargetAtTime(' + yToVal(p.y).toString() + ', now + ' + xToTime(p.x).toString() + ', ' + xToTime(p.c) + ');' );
 
       }
       lastTime = xToTime(p.x);
     }
-    lines.push( '};' );
-    return lines.join('\n');
+    return lines.join(indent + '\n');
   };
 
 
 
   var points = [];
-
-  var code = printCode(points);
-  try {
-    fn = eval(code + 'fn');
-  }
-  catch (e) {
-
-  };
-  $('#code').val(code);
 
   var canvas = $('#drawer').get(0);
   var ctx = canvas.getContext('2d');
@@ -169,10 +190,12 @@ $(function () {
   var logMode = 10;
   var width = 1000;
   var height = 600;
-  var zoomX = 128;
-  var zoomY = 64;
-  var offsetX = 0;
-  var offsetY = 0;
+  var zoomX = 64;
+  var zoomY = 512;
+  var pointWidth = 16;
+  var pointHeight = 16;
+  var offsetX = 0.1;
+  var offsetY = 0.1;
 
   var lastRedraw = 0;
   var redrawRequested;
@@ -197,7 +220,7 @@ $(function () {
     if ( !dragging ) {
       code = printCode(points);
       try {
-        fn = eval(code + 'fn');
+        fn = eval( 'var fn = function (ctx,param) {' + code + '}; fn;');
       }
       catch (e) {
       }
@@ -208,9 +231,6 @@ $(function () {
 
   var last = 0;
   $('#grid').on('mousemove', function (e) {
-//console.log('A');
-//console.log(e.offsetX,e.offsetY,screenY2Y(e.offsetY), y2ScreenY(screenY2Y(e.offsetY)));
-
     $('#stat').text(
       'x: ' + e.offsetX
     + ' y: ' + e.offsetY
@@ -356,32 +376,20 @@ $(function () {
     redraw();
   });
 
-
-
-// test
-  var startPoints = [
-    { type: 'set', x: 0, y: 3 },
-
-    { type: 'set', x: 0.2, y: 1, c: 1 },
-    { type: 'set', x: 0.4, y: 3, c: 1 },
-    { type: 'set', x: 0.6, y: 2.3, c: 1 },
-    { type: 'target', x: 0.8, y: 4, c:.3 },
-    { type: 'target', x: 1, y: 20.1,c:.2 },
-    { type: 'set', x: 1.2, y: 4, c:1 },
-    { type: 'exponential', x: 2, y: 1, c:1 },
-    { type: 'linear', x: 3, y: 5, c:1 },
-    { type: 'target', x: 4, y: 2, c:1},
-    { type: 'linear', x: 5, y: 3, c:1 },
-    { type: 'target', x: 6, y: 1, c:1 }
-  ];
-
-
   var typeLoop = {
     linear: 'exponential',
     exponential: 'set',
     set: 'target',
     target: 'linear'
   };
+
+  var typeInitial = {
+    linear: 'L',
+    exponential: 'E',
+    set: 'S',
+    target: 'T'
+  }
+
   var selectedPoint;
   function clearSelection () {
     if ( selectedPoint ) {
@@ -459,25 +467,21 @@ $(function () {
 
     $('.point').each( function () {
       $(this).css({
-        left: x2ScreenX( parseFloat($(this).attr('data-x')) ) - 5,
-        top: y2ScreenY( parseFloat($(this).attr('data-y')) ) - 5
+        left: x2ScreenX( parseFloat($(this).attr('data-x')) ) - pointWidth / 2,
+        top: y2ScreenY( parseFloat($(this).attr('data-y')) ) - pointHeight / 2
       });
     });
-  }
-
-  for ( var i=0;i<startPoints.length;i++) {
-    var p = startPoints[i];
-    addPoint(p.x,p.y,p.type,p.c);
   }
 
   var dragOffsetX,dragOffsetY;
   var draggingPoint;
   function addPoint (x,y,type,c) {
     var div = $('<div />')
+      .text( typeInitial[type] )
       .css({
         position: 'absolute',
-        width: '5px',
-        height: '5px',
+        width: pointWidth + 'px',
+        height: pointHeight + 'px',
         'z-Index': 99999
       })
       .addClass('point')
@@ -492,8 +496,8 @@ $(function () {
         selectedPoint = div;
         div.addClass('selected');
         draggingPoint = div;
-        dragOffsetX = parseFloat(div.css('left')) - e.originalEvent.clientX + 5;
-        dragOffsetY = parseFloat(div.css('top')) - e.originalEvent.clientY + 5;
+        dragOffsetX = parseFloat(div.css('left')) - e.originalEvent.clientX + pointWidth / 2;
+        dragOffsetY = parseFloat(div.css('top')) - e.originalEvent.clientY + pointHeight / 2;
         var img = document.createElement("img");
         img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"; // transparent 1x1 image
         e.originalEvent.dataTransfer.setDragImage(img, 20,20);
@@ -515,10 +519,11 @@ $(function () {
   $(document).on('dragover', function (e) {
     draggingPoint.attr('data-x', screenX2X(e.originalEvent.clientX + dragOffsetX));
     draggingPoint.attr('data-y', screenY2Y(e.originalEvent.clientY + dragOffsetY));
-    draggingPoint.css('left', e.originalEvent.clientX + dragOffsetX - 5);
-    draggingPoint.css('top', e.originalEvent.clientY + dragOffsetY - 5);
+    draggingPoint.css('left', e.originalEvent.clientX + dragOffsetX - pointWidth / 2);
+    draggingPoint.css('top', e.originalEvent.clientY + dragOffsetY - pointHeight / 2);
     rebuildPoints();
     showInfo();
+    $('#stat').text('');
     return false;
   });
 
@@ -538,15 +543,24 @@ $(function () {
   };
 
   var loadCode = function (code) {
+    var fn = eval('var fn = function (ctx,param) {' + code + '}; fn;');
+    points = [];
     $('.point').remove();
-    var fn = eval(code);
     fn({ currentTime: 0}, mockParam);
   }
 
   $('#load-code').click( function () {
     var code = $('#code').val();
-    loadCode(code);
+    try {
+      loadCode(code);
+    }
+    catch(e) {
+      $('.code-error').text(e).show();
+      return;
+    };
+    $('.code-error').hide();
     rebuildPoints();
+    refreshPoints();
   });
 
   function rebuildPoints () {
@@ -562,7 +576,7 @@ $(function () {
     points.sort( function (a,b){ return a.x - b.x });
     code = printCode(points);
     try {
-      fn = eval(code + 'fn');
+      fn = eval('var fn = function (ctx,param) {' + code + '}; fn;');
     }
     catch (e) {
 
@@ -594,6 +608,7 @@ $(function () {
   }
 
   logMode = sim.logMode = drawer.logMode = grid.logMode = 0;
+
   $('input[name=view]').on('change', function () {
     var mode = $('input[name=view]:checked').val();
     if ( mode === 'e' )
@@ -614,6 +629,10 @@ $(function () {
     refreshPoints();
   });
 
+  $('#show-help').click( function () { $('#help').toggle() });
+  $('#hide-help').click( function () { $('#help').toggle() });
+
+  $('#load-code').click();
   $(window).on('resize', resize);
   resize();
 });
@@ -631,7 +650,34 @@ $(function () {
 <section id="menu">
   <div>
     <h2>code</h2>
-    <textarea id="code"></textarea>
+    <textarea id="code">
+var t0 = 0;
+var t1 = 0.1;
+var t2 = 0.2;
+var t3 = 0.3;
+var t4 = 0.325;
+var t5 = 0.5;
+var t6 = 0.6;
+var t7 = 0.7;
+var t8 = 1.0;
+var timeConstant = 0.1;
+
+param.setValueAtTime(0.2, t0);
+param.setValueAtTime(0.3, t1);
+param.setValueAtTime(0.4, t2);
+param.linearRampToValueAtTime(1, t3);
+param.linearRampToValueAtTime(0.8, t4);
+param.setTargetAtTime(.5, t4, timeConstant);
+// Compute where the setTargetAtTime will be at time t5 so we can make
+// the following exponential start at the right point so there's no
+// jump discontinuity.  From the spec, we have
+//   v(t) = 0.5 + (0.8 - 0.5)*exp(-(t-t4)/timeConstant)
+// Thus v(t5) = 0.5 + (0.8 - 0.5)*exp(-(t5-t4)/timeConstant)
+param.setValueAtTime(0.5 + (0.8 - 0.5)*Math.exp(-(t5 - t4)/timeConstant), t5);
+param.exponentialRampToValueAtTime(0.75, t6);
+param.exponentialRampToValueAtTime(0.05, t7);
+    </textarea>
+    <div class="code-error"></div>
     <button id="load-code">load</button>
   </div>
   <div id="point-info">
@@ -652,8 +698,35 @@ $(function () {
       <li><label><input type="radio" name="view" value="10" />log10</label></li>
     </ul>
     <button id="view-reset">reset</button>
-  </div>
 
+  </div>
+  <div id="about">
+    <h2>about</h2>
+    <button id="show-help">help</button>
+  </div>
+</section>
+<section id="help" style="display: none;">
+<h1>Code</h1>
+Envelope graph will be audomatically translated to web audio code in realtime.<br />
+You can also load existing envelope code ( setValueCurveAtTime is not supported, though ;p )
+
+<h1>Mouse controls</h1>
+<h2>On points</h1>
+<dl>
+  <dt>Click</dt><dd>select point.</dd>
+  <dt>Drag</dt><dd>move point</dd>
+  <dt>Alt+Click</dt><dd>Change the point's type</dd>
+  <dt>Shift+Click</dt><dd>Remove point</dd>
+<dl>
+
+<h2>On background</h2>
+<dl>
+  <dt>Click</dt><dd>de-select point</dd>
+  <dt>Drag</dt><dd>move the graph area</dd>
+  <dt>Scroll Wheel</dt><dd>ZoomIn/ZoomOut for X,Y</dd>
+  <dt>Shift+Click</dt><dd>Add new point</dd>
+</dl>
+<button id="hide-help">close</button>
 </section>
 </body>
 

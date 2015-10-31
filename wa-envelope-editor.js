@@ -179,25 +179,30 @@
 
   EnvelopeSimDrawer.prototype.draw = function (points) {
     var ctx = this.canvas2dContext;
-    ctx.beginPath();
     var mode = 'set';
     var x = 0, y = 0;
     ctx.moveTo(
       this.offsetX*44100/this.zoomX,
-      this.height - this.offset * this.zoomY
+      this.height - this.offsetY * this.zoomY
     );
     var running;
     for ( var i=0; i < points.length; i++ ) {
+      ctx.beginPath();
       var p = points[i];
       var n = points[i+1];
       if ( 'undefined' === typeof n ) {
         n = {type: 'end', x: this.width * this.zoomX / 44100, y:1};
       }
-      if ( (n.x+this.offsetX) * 44100 / this.zoomX < -100000) continue;
-      if ( (p.x+this.offsetX) * 44100 / this.zoomX > this.width + 100000 ) break;
+      if ( (n.x+this.offsetX) * 44100 / this.zoomX < -1000) {
+        continue;
+      }
+      if ( (p.x+this.offsetX) * 44100 / this.zoomX > this.width + 1000 ) {
+        break;
+      }
       switch ( p.type ) {
         case 'set':
           //if ( n.type === 'linear' || n.type === 'exponential' ) {
+            this.moveTo(x,y);
             this.lineTo(p.x, y);
             this.lineTo(p.x, p.y);
           //}
@@ -207,6 +212,7 @@
           running = true;
 
         case 'linear':
+          this.moveTo(x,y);
           var v0 = y;
           var v1 = p.y;
           var t0 = x;
@@ -228,6 +234,7 @@
           break;
         case 'exponential':
           if ( y <= 0 ) break;
+          this.moveTo(x,y);
           var v0 = y;
           var v1 = p.y;
           var t0 = x;
@@ -245,6 +252,7 @@
           running = false;
           break;
         case 'target':
+          this.moveTo(x,y);
           this.lineTo(p.x, y);
           if ( n.type === 'linear' || n.type === 'exponential' ) {
             this.lineTo(p.x, p.y);
@@ -271,8 +279,8 @@
       if ( n.type === 'end' ) {
         this.lineTo(999999, p.y);
       }
+      ctx.stroke();
     }
-    ctx.stroke();
   };
 
   var GridDrawer = function (canvas2dContext) {

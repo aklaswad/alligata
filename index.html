@@ -29,6 +29,10 @@ div,section,canvas,body {
   z-index: 10000;
 }
 
+.point:hover {
+  cursor: pointer;
+}
+
 .point.target {
   border-style: solid;
   border-color: #f84;
@@ -171,9 +175,14 @@ $(function () {
   var offsetY = 0;
 
   var lastRedraw = 0;
+  var redrawRequested;
   function redraw () {
     var now = (new Date()).getTime();
-    if ( lastRedraw + 50 > now ) return;
+    if ( lastRedraw + 50 > now ) {
+      if ( redrawRequested ) clearTimeout( redrawRequested );
+      redrawRequested = setTimeout( redraw, 50 );
+      return;
+    }
     lastRedraw = now;
     ctx.clearRect(0,0,width,height);
     ctx2.clearRect(0,0,width,height);
@@ -184,7 +193,7 @@ $(function () {
     drawer.offsetY = sim.offsetY = grid.offsetY = offsetY;
     sim.draw(points);
     grid.draw();
-    refreshPoints();
+    //refreshPoints();
     if ( !dragging ) {
       code = printCode(points);
       try {
@@ -199,8 +208,9 @@ $(function () {
 
   var last = 0;
   $('#grid').on('mousemove', function (e) {
+//console.log('A');
 //console.log(e.offsetX,e.offsetY,screenY2Y(e.offsetY), y2ScreenY(screenY2Y(e.offsetY)));
-    if ( pdragging ) return true;
+
     $('#stat').text(
       'x: ' + e.offsetX
     + ' y: ' + e.offsetY
@@ -255,18 +265,20 @@ $(function () {
   });
 
   $('#grid').on('mousemove', function (e) {
+//console.log('B');
     if ( dragBegin ) {
       dragging = true;
       offsetX = dragBegin[2] - (dragBegin[0] - e.offsetX) * zoomX / 44100;
       offsetY = dragBegin[3] + (dragBegin[1] - e.offsetY) / zoomY;
       redraw();
+      refreshPoints();
       return false;
     }
+    return true;
   });
 
   $('#grid').on('mouseup', function (e) {
     dragBegin = false;
-    redraw();
     return false;
   });
 
@@ -290,6 +302,7 @@ $(function () {
     else
       offsetY = -screenY2Y(height + (y2ScreenY(yy) -  sy));
     redraw();
+    refreshPoints();
     $('#stat').text(
       'x: ' + e.offsetX
     + ' y: ' + e.offsetY
@@ -429,47 +442,19 @@ $(function () {
   });
 
 
-  var pdragging = false;
-  var pdragBegin;
 
-  $(document).on('mousedown', '.point', function (e) {
-    pdragging = $(this);
-    if ( selectedPoint ) {
-      selectedPoint.removeClass('selected');
-    }
-    $(this).addClass('selected');
-    selectedPoint = $(this);
-    showInfo();
-    return false;
-  });
-
-  $('#grid').on('mousemove', function (e) {
-    if ( pdragging && $(e.target).is('#grid') ) {
-      pdragging
-        .css({
-          top: e.offsetY,
-          left: e.offsetX,
-        })
-        .attr('data-x', screenX2X(e.offsetX))
-        .attr('data-y', screenY2Y(e.offsetY))
-        .attr('data-dragging', 1)
-      rebuildPoints();
-      showInfo();
-      return false;
-    }
-  });
-
-  $('#points').on('mouseup', function (e) {
-    if ( pdragging ) {
-      pdragging = false;
-      refreshPoints();
-      return false;
-
-    }
-  });
-
-
+  var lastRefresh = 0;
+  var refreshPointsRequested;
   function refreshPoints() {
+
+    var now = (new Date()).getTime();
+    if ( lastRefresh + 50 > now ) {
+      if ( refreshPointsRequested ) clearTimeout( refreshPointsRequested );
+      refreshPointsRequested = setTimeout( refreshPoints, 50 );
+      return;
+    }
+    lastRefresh = now;
+
     $('.point').each( function () {
       $(this).css({
         left: x2ScreenX( parseFloat($(this).attr('data-x')) ) - 5,
@@ -483,6 +468,8 @@ $(function () {
     addPoint(p.x,p.y,p.type,p.c);
   }
 
+  var dragOffsetX,dragOffsetY;
+  var draggingPoint;
   function addPoint (x,y,type,c) {
     var div = $('<div />')
       .css({
@@ -497,8 +484,38 @@ $(function () {
       .attr('data-x', x)
       .attr('data-y', y)
       .attr('data-c', c || 1)
+      .attr('draggable', "true")
+      .on('dragstart', function(e){
+        draggingPoint = div;
+        dragOffsetX = parseFloat(div.css('left')) - e.originalEvent.clientX + 5;
+        dragOffsetY = parseFloat(div.css('top')) - e.originalEvent.clientY + 5;
+console.log(e);
+
+        var img = document.createElement("img");
+        img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"; // transparent 1x1 image
+        e.originalEvent.dataTransfer.setDragImage(img, 20,20);
+        e.originalEvent.dataTransfer.dropEffect = 'move';
+        e.originalEvent.dataTransfer.effectAllowed = 'move';
+      })
       .appendTo( $('#points') );
   }
+
+  $(document).on('drop', function (e) {
+    draggingPoint.attr('data-x', screenX2X(e.originalEvent.clientX + dragOffsetX));
+    draggingPoint.attr('data-y', screenY2Y(e.originalEvent.clientY + dragOffsetY));
+    rebuildPoints();
+    refreshPoints();
+    return false;
+  });
+  $(document).on('dragover', function (e) {
+    draggingPoint.attr('data-x', screenX2X(e.originalEvent.clientX + dragOffsetX));
+    draggingPoint.attr('data-y', screenY2Y(e.originalEvent.clientY + dragOffsetY));
+    draggingPoint.css('left', e.originalEvent.clientX + dragOffsetX - 5);
+    draggingPoint.css('top', e.originalEvent.clientY + dragOffsetY - 5);
+
+    rebuildPoints();
+    return false;
+  });
 
   var mockParam = {
     setTargetAtTime: function (val, start, cons ) {
@@ -526,6 +543,7 @@ $(function () {
     loadCode(code);
     rebuildPoints();
   });
+
   function rebuildPoints () {
     points = [];
     $('.point').each( function () {
@@ -579,6 +597,7 @@ $(function () {
       mode = parseInt(mode);
     logMode = sim.logMode = drawer.logMode = grid.logMode = mode;
     rebuildPoints();
+    refreshPoints();
   });
 
   $('#view-reset').click( function () {
@@ -587,6 +606,7 @@ $(function () {
     drawer.offsetX = sim.offsetX = grid.offsetX = offsetX = 0;
     drawer.offsetY = sim.offsetY = grid.offsetY = offsetY = 0;
     rebuildPoints();
+    refreshPoints();
   });
 
   $(window).on('resize', resize);

@@ -488,11 +488,12 @@ $(function () {
       .attr('data-c', c || 1)
       .attr('draggable', "true")
       .on('dragstart', function(e){
+        clearSelection();
+        selectedPoint = div;
+        div.addClass('selected');
         draggingPoint = div;
         dragOffsetX = parseFloat(div.css('left')) - e.originalEvent.clientX + 5;
         dragOffsetY = parseFloat(div.css('top')) - e.originalEvent.clientY + 5;
-console.log(e);
-
         var img = document.createElement("img");
         img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"; // transparent 1x1 image
         e.originalEvent.dataTransfer.setDragImage(img, 20,20);
@@ -510,13 +511,14 @@ console.log(e);
     refreshPoints();
     return false;
   });
+
   $(document).on('dragover', function (e) {
     draggingPoint.attr('data-x', screenX2X(e.originalEvent.clientX + dragOffsetX));
     draggingPoint.attr('data-y', screenY2Y(e.originalEvent.clientY + dragOffsetY));
     draggingPoint.css('left', e.originalEvent.clientX + dragOffsetX - 5);
     draggingPoint.css('top', e.originalEvent.clientY + dragOffsetY - 5);
-
     rebuildPoints();
+    showInfo();
     return false;
   });
 

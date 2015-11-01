@@ -223,6 +223,7 @@ $(function () {
         fn = eval( 'var fn = function (ctx,param) {' + code + '}; fn;');
       }
       catch (e) {
+console.log(e);
       }
       $('#code').val(code);
       drawer.draw(fn);

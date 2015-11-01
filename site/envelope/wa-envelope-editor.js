@@ -9,7 +9,7 @@
     this.offsetY = 0;
     this.height = this.canvas2dContext.canvas.height;
     this.width = this.canvas2dContext.canvas.width;
-    this._processorSize = 8192 / 4;
+    this._processorSize = 8192 / 2;
     this.logMode = 10;
     this.init();
   };
@@ -18,9 +18,15 @@
     var actx = this.audioContext;
     var osc = actx.createOscillator();
     var flattener = actx.createWaveShaper();
+    var timeCode = actx.createGain();
     var drawer = this.drawer = actx.createScriptProcessor(this._processorSize);
+    var merger = actx.createChannelMerger();
+    var splitter = actx.createChannelSplitter();
     var mute = this.mute = actx.createGain();
     var tester = this.tester = actx.createGain();
+    var two_month = 60 * 60 * 24 * 30 * 2;
+    timeCode.gain.setValueAtTime(0,0);
+    timeCode.gain.linearRampToValueAtTime(two_month, two_month); // follows context time coordinate
 
     this.path = [];
 
@@ -33,8 +39,12 @@
     drawer.connect(mute);
     osc.connect(flattener);
     flattener.connect(tester);
-    tester.connect(drawer);
-    flattener.connect(mute);
+    flattener.connect(timeCode);
+    tester.connect(merger, 0, 0);
+    timeCode.connect(merger, 0, 1);
+    merger.connect(drawer);
+    drawer.connect(splitter);
+    splitter.connect(mute);
     mute.connect(actx.destination);
     osc.start(0);
   };
@@ -68,6 +78,8 @@
     var initialized = false;
     return function (e) {
       if ( !running ) { console.log( '!!'); return; }
+      var data = e.inputBuffer.getChannelData(0);
+      var time = e.inputBuffer.getChannelData(1);
       if ( !initialized ) {
         that.playedSamples = 0;
         that.drawedPixels = 0;
@@ -75,16 +87,17 @@
         that.lastPos = [0,0];
         initialized = true;
       }
-      var data = e.inputBuffer.getChannelData(0);
       for (var i=0;i<data.length;i++) {
         if ( isNaN(max) || max < data[i] ) max = data[i];
         if ( isNaN(min) || data[i] < min ) min = data[i];
         if ( that.playedSamples++ > that.drawedPixels * that.zoomX) {
           that.drawedPixels++;
           if ( !running ) { console.log('!!!'); return; }
-          var x = that.playedSamples / 44100;
-          that.path.push([x, min]);
-          that.path.push([x, max]);
+          if ( time[i] > that.beginTime ) {
+            var x = time[i] - that.beginTime;
+            that.path.push([x, min]);
+            that.path.push([x, max]);
+          }
           min = NaN;
           max = NaN;
           that.drawPath();
@@ -100,14 +113,7 @@
       window.cancelAnimationFrame(this.animation);
       this.animation = false;
     }
-    var newProcessor =  this.buildProcessor();
     that.canvas2dContext.clearRect(0,0,that.width,that.height);
-    that.tester.disconnect();
-    that.drawer.disconnect();
-    that.drawer = that.audioContext.createScriptProcessor(that._processorSize);
-    that.drawer.onaudioprocess = newProcessor;
-    that.drawer.connect(that.mute);
-    that.tester.connect(that.drawer);
     that.tester.gain.cancelScheduledValues(0);
     that.tester.gain.value = 0;
     that.resetting = false;
@@ -142,9 +148,13 @@
   EnvelopeDrawer.prototype.draw = function (fn) {
     this.reset();
     this.tester.gain.value = 0;
-    fn(this.audioContext, this.tester.gain);
+    this.beginTime = this.audioContext.currentTime + 0.001;
+    this.path = [];
+    this.lastPos = [0,0];
+    this.playedSamples = 0;
+    this.drawedPixels = 0;
+    fn({currentTime: this.beginTime}, this.tester.gain);
   };
-
 
 
   var EnvelopeSimDrawer = function (canvas2dContext) {
